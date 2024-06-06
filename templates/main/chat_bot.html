@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}\V/ Kart - My Cart{% endblock title %}
+
+{% block pageheader %}
+  <h2> Contact</h2>
+{% endblock pageheader %}
+
+{% block content %}
+  {% load static %}
+  <div class="container mt-4">
+    <div class="row">
+        <!-- <div class="col-md-8">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <strong></strong> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div> -->
+        <div class="container ">
+          <div class="row ">
+              <div class="col-md-12">
+                      <div class="card-body">
+                          
+                                  <div class="chat-container" style="padding: 20px; height: 60vh;">
+                                    <h5>Hi {{user.username}}, If you have any enquiries you can contact us on via the form below.</h5>
+                                      <div class="messages" style="margin-bottom: 20px;">
+                                          {% if messages %}
+                                              <div class="alert alert-info">
+                                                  {% for message in messages %}
+                                                      <p>{{ message }}</p>
+                                                  {% endfor %}
+                                              </div>
+                                          {% endif %}
+                                      </div>
+                                      <form action="{% url 'chat_bot' %}" method="post">
+                                        {% csrf_token %}
+                                        <div class="form-group">
+                                          <textarea name="query" rows="5" class="form-control" placeholder="Enter your query" required style="height: 40vh;"></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary send-button" style="margin-top: 10px;">Send</button>
+                                      </form>
+
+                                  </div>
+                              
+                          
+                      </div>
+                  
+              </div>
+              <div class="col">
+                <h5> </h5>
+              </div>
+          </div>
+      </div>
+  </div>
+        
+ 
+
+  {% endblock content %}

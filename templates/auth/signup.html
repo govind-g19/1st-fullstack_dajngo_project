@@ -1,0 +1,85 @@
+{% extends "auth/authbase.html" %}
+{% load static %}
+
+{% block title %} Sign up {% endblock title %}
+
+{% block pageheader %}
+<h2 class="page-font">SIGN-UP</h2>
+{% endblock pageheader %}
+
+{% block content %}
+<br>
+<div class="container">
+    <div class="row">
+        <div class="col-6 justify-content-center align-items-center d-flex">
+            <br>
+            <br>
+            <br>
+            <div class="col-2"></div>
+            <!-- Content for the second half of the screen -->
+            <img src="{% static 'imgs/icons/img.jpg' %}" class="rounded-circle" id="rotating-logo" style="height: 60vh; width: 60vh;">
+        </div>
+        <br>
+        <div class="col-6 d-flex text-light bg-dark p-3 rounded-4" style="width: auto;">
+            <br>
+            <!-- Content for the first half of the screen -->
+            <form method="POST" action="{% url 'signup' %}">
+                {% csrf_token %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <strong></strong> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+                <div class="mb-2">
+                    <label for="username" class="form-label">User name</label>
+                    <input type="text" name="username" class="form-control" id="username" required>
+                </div>
+                <div class="mb-2">
+                    <label for="exampleInputEmail1" class="form-label">Email address</label>
+                    <input type="email" name="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" required>
+                </div>
+                <div class="mb-2 mt-0">
+                    <label for="fullname" class="form-label">Full name</label>
+                    <div class="input-group">
+                        <input type="text" aria-label="First name" placeholder="Firstname" class="form-control" name="first_name" required>
+                        <input type="text" aria-label="Last name" name="last_name" placeholder="Last name" class="form-control">
+                    </div>
+                </div>
+                <div class="mb-2 position-relative">
+                    <label for="exampleInputPassword1" class="form-label">Password</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" name="pass1" id="exampleInputPassword1" required>
+                        <span class="input-group-text" data-bs-toggle="tooltip" data-bs-placement="top"
+                            title="Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one digit, and one special character (@, $, !, %, *, ?, &).">
+                            <span class="material-symbols-outlined">
+                              help
+                              </span>
+                        </span>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label for="exampleInputConfirmPassword1" class="form-label">Confirm Password</label>
+                    <input type="password" name="pass2" class="form-control" id="exampleInputConfirmPassword1" required>
+                </div>
+                <div class="input-group">
+                    <button type="submit" class="btn btn-secondary">Submit</button>
+                    <a href="{% url 'login' %}" class="text-primary style-hover ms-2">Existing User? Log In</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<br><br><br><br><br><br>
+{% endblock content %}
+
+<!-- Include Bootstrap JS and jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<!-- Initialize tooltips -->
+<script>
+    $(document).ready(function(){
+        $('[data-bs-toggle="tooltip"]').tooltip(); 
+    });
+</script>

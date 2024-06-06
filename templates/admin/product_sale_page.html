@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    {% for product_entry in product_data %}
+    <h2>{{ product_entry.product.name }}</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Variant</th>
+                <th>Total Sales</th>
+                <th>Total Revenue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for variant_entry in product_entry.variants %}
+            <tr>
+                <td>{{ variant_entry.variant.name }}</td>
+                <td>{{ variant_entry.total_sales }}</td>
+                <td>{{ variant_entry.total_revenue }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endfor %}
+</div>
+{% endblock %}

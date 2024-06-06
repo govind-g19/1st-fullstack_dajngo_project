@@ -1,0 +1,40 @@
+from cartapp import views
+from django.urls import path
+
+urlpatterns = [
+    path('add_to_cart/<int:product_id>/', views.add_to_cart,
+         name='add_to_cart'),
+    path('cart/', views.cart_view,
+         name='cart'),
+    path('reduce_quantity/<int:cart_item_id>/', views.reduce_quantity,
+         name='reduce_quantity'),
+    path('add_quantity/<int:cart_item_id>/', views.add_quantity,
+         name='add_quantity'),
+    path('remove_cart/<int:cart_item_id>/', views.remove_cart,
+         name='remove_cart'),
+    path('check_out', views.check_out,
+         name='check_out'),
+    path('add_address', views.add_address,
+         name='add_address'),
+    path('default_address/<int:address_id>/', views.default_address,
+         name='default_address'),
+    path('edit_address/<int:address_id>/', views.edit_address,
+         name='edit_address'),
+    path('delete_address/<int:address_id>/', views.delete_address,
+         name='delete_address'),
+    path('add_coupon', views.add_coupon,
+         name='add_coupon'),
+    path('view_coupon_admin', views.view_coupon_admin,
+         name='view_coupon_admin'),
+    path('edit_coupon/<int:coupon_id>/', views.edit_coupon,
+         name='edit_coupon'),
+    path('delete_coupon/<int:coupon_id>/', views.delete_coupon,
+         name='delete_coupon'),
+    path('apply_coupon', views.apply_coupon,
+         name='apply_coupon'),
+    path('delete_cart/<int:cart_id>/', views.delete_cart,
+         name='delete_cart'),
+    path('page_direct', views.page_direct, name='page_direct'),
+
+
+]

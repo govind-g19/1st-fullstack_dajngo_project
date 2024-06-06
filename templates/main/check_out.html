@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}\V/ Kart - My Cart{% endblock title %}
+
+{% block pageheader %}
+  <h2>Checkout</h2>
+{% endblock pageheader %}
+
+{% block content %}
+  {% load static %}
+  <div class="container">
+    <div class="row">
+      <div class="col-12" style="margin-right: 0px; position: relative;">
+        <a href="{% url 'delete_cart' cart.id %}" class="text-dark" style="position: absolute; top: 0; right: 0;"
+            data-toggle="tooltip" data-placement="top" title="Close all">
+            <span class="material-symbols-outlined">close</span>
+        </a>
+    </div>
+    
+<br> 
+      <div class="col-7">
+        <!-- Cart Items -->
+        <div class="col-md-12">
+          <div class="box">
+            <table class="table table-hover fw-medium" style="border: 2px solid gray;">
+              <thead>
+                <tr>
+                  <th scope="col-" class="fw-bolder" style="width: 10%;">Product</th>
+                  <th scope="col-" class="fw-bolder" style="width: 10%;">Variant</th>
+                  <th scope="col" class="fw-bolder" style="width: 10%;">Image</th>
+                  <th scope="col" class="fw-bolder" style="width: 10%;">Quantity</th>
+                  <th scope="col" class="fw-bolder" style="width: 10%;">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for cart_item in cart_items %}
+                <tr>
+                  <td>{{ cart_item.product.product_name }}</td>
+                  <td>{{ cart_item.variant }}</td>
+                  <td><img src="{{ cart_item.product.product_images.url }}" alt="Product Image" style="width: 50px;"></td>
+                  <td>{{ cart_item.added_quantity }}</td>
+                  <td>₹{{ cart_item.sub_total }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <hr>
+        <!-- Selected Address -->
+        <div class="col-md-12 mt-4">
+          <div class="box">
+            <h5>Selected Address:</h5>
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">{{ default_address.first_name }} {{ default_address.second_name }}</h5>
+                <p class="card-text">{{ default_address.house_address }},{{ default_address.city }}, {{ default_address.state }}, {{ default_address.pin_code }}</p>
+                <p class="card-text">Phone: {{ default_address.phone_number }}</p>
+                <p class="card-text">Landmark: {{ default_address.land_mark }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <hr>
+        <!-- Address selection and form -->
+        <div class="col-md-12">
+          <div class="box">
+            {% if default_address %}
+            <button class="btn btn-dark collapsed" style="border-radius: 35px;" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+              Select Shipping Address
+            </button>
+            <br>
+            <div class="collapse" id="collapseTwo">
+              <div class="card-body">
+                <div class="shipping-address-form">
+                  {% for address in address_list %}
+                  <!-- Address cards -->
+                  <div class="card mb-2">
+                    <div class="card-body">
+                      <h5 class="card-title">{{ address.first_name }} {{ address.second_name }}</h5>
+                      <p class="card-text">{{ address.house_address }}, {{ address.city }},, {{ address.state }} {{ address.pin_code }}</p>
+                      <p class="card-text">Phone: {{ address.phone_number }}</p>
+                      <p class="card-text">Landmark: {{ address.land_mark }}</p>
+                      <div class="btn-group" role="group" aria-label="Address Actions">
+                        <a href="{% url 'edit_address' address_id=address.id %}?source=checkout" class="text-warning ms-2">
+                          <span class="material-symbols-outlined">edit</span>
+                      </a>
+                        {% comment %} <a href="{% url 'delete_address' address_id=address.id %}" class="text-danger ms-3" ><span class="material-symbols-outlined">delete</span></a> {% endcomment %}
+                        {% if address.is_primary %}
+                        <a class="text-success  ms-3" ><span class="material-symbols-outlined">radio_button_checked</span></a>
+                        {% else %}
+                        <a href="{% url 'default_address' address_id=address.id %}" class="text-dark ms-3" ><span class="material-symbols-outlined">radio_button_checked</span></a>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                  <!-- Add Address button -->
+                  <br>
+                  <a href="{% url 'page_direct' %}" class="btn btn-dark" style="border-radius: 35px;">Add Address</a>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <h5>No Addresses Found</h5>
+            <a href="{% url 'page_direct' %}" class="btn btn-dark" style="border-radius: 35px;">Add Address</a>
+            {% endif %}
+          </div>
+        </div>
+        <hr>
+        <!-- Coupon Form -->
+        <div class="col-md-12">
+          <div class="box">
+            <form class="row g-3" method="post" action="{% url 'apply_coupon' %}">
+              {% csrf_token %}
+              <div class="col-auto mt-1">
+                <label for="coupon_code" class="visually-hidden">Coupon Code</label>
+                <input type="text" class="form-control" name="coupon_code" id="coupon_code" placeholder="Enter coupon code" required>
+              </div>
+              <div class="col-auto">
+                <button type="submit" class="btn btn-outline-secondary mb-3">Apply coupon</button>
+              </div>
+            </form>
+            <!-- Show Coupons Button and Table -->
+            <button id="showCouponsBtn" class="btn btn-secondary" style="border-radius: 35px;">Show Coupons</button>
+            <div id="couponsTableWrapper" style="display: none;">
+              <table class="table table-hover fw-medium" style="border: 2px solid gray;">
+                <thead>
+                  <tr>
+                    <th scope="col" class="fw-bolder" style="width: 10%;">Coupon code</th>
+                    <th scope="col" class="fw-bolder" style="width: 10%;">Brand</th>
+                    <th scope="col" class="fw-bolder" style="width: 10%;">Minimum Amount</th>
+                    <th scope="col" class="fw-bolder" style="width: 10%;">Discount price</th>
+                    <th scope="col" class="fw-bolder" style="width: 20%;">Expire date</th>
+                    <th scope="col" class="fw-bolder" style="width: 10%;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for valid_coupon in valid_coupons %}
+                  <tr>
+                    <td class="p-2">{{ valid_coupon.coupon_code }}</td>
+                    <td class="p-2">{{ valid_coupon.brand }}</td>
+                    <td class="p-2">{{ valid_coupon.minimum_amount }}</td>
+                    <td class="p-2">{{ valid_coupon.discount }}</td>
+                    <td class="p-2">{{ valid_coupon.valid_to }}</td>
+                    {% if valid_coupon.is_used  %}
+                    <td class="p-2 text-danger">Used</td>
+                    {% else %}
+                    <td class="p-2 text-success">Not Used</td>
+                    {% endif %}
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <hr>
+          </div>
+        </div>
+        <hr>
+      </div>
+      <div class="col-5">
+        <!-- Total and Place Order -->
+        <div class="col-12">
+          <div class="box" style="position: static; right: 0; top: 150px; ">
+            <div class="card">
+              <div class="card-body">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th class="card-text">Total</th>
+                      <th class="card-text">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="total-data">
+                      <td class="card-text"><strong>Subtotal: </strong></td>
+                      <td class="card-text">₹{{ total }}</td>
+                    </tr>
+                    <tr class="total-data">
+                      <td class="card-text"><strong>GST: </strong></td>
+                      <td class="card-text">₹{{ tax }}</td>
+                    </tr>
+                    <tr class="total-data">
+                      <td class="card-text"><strong>Shipping: </strong></td>
+                      <td class="card-text">₹{{ shipping }}</td>
+                    </tr>
+                    <tr class="total-data">
+                      <td class="card-text"><strong>Discount: </strong></td>
+                      <td class="card-text">₹{{ discount_amount }}</td>
+                    </tr>
+                    <tr class="total-data">
+                      <td class="card-text"><strong>Grand Total: </strong></td>
+                      <td class="card-text">₹{{ grand_total }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div>
+                  <div class="row">
+                    <div class="col-12">
+                        <form id="placeOrderForm" method="post" action="{% url 'place_order' %}">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-12">
+                                    <label class="visually-hidden" for="inlineFormSelectPref" required>Payment method</label>
+                                    <select class="form-select" id="inlineFormSelectPref" name="payment_method" required>
+                                        <option value="COD">Cash on Delivery</option>
+                                        <option value="Razorpay">Razorpay</option>
+                                        <option value="wallet">Wallet</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <input type="hidden" name="Subtotal" value="{{ total }}">
+                            <input type="hidden" name="discount_given" value="{{ discount_amount }}">
+                            <input type="hidden" name="shipping" value="{{ shipping }}">
+                            <input type="hidden" name="tax" value="{{ tax }}">
+                            <input type="hidden" name="grand_total" value="{{ grand_total }}">
+                            <input type="hidden" name="cart_id" value="{{ cart.id }}">
+                            <div class="row mt-3">
+                                <div class="col d-flex justify-content-between">
+                                    <button type="submit" class="btn btn-outline-secondary">Place Order</button>
+                                    <a href="{% url 'shop' %}" class="btn btn-outline-secondary">Continue Shopping</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          {% for message in messages %}
+            <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
+              <strong></strong> {{message}}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("showCouponsBtn").addEventListener("click", function() {
+      var tableWrapper = document.getElementById("couponsTableWrapper");
+      if (tableWrapper.style.display === "none") {
+        tableWrapper.style.display = "block";
+      } else {
+        tableWrapper.style.display = "none";
+      }
+    });
+  </script>
+{% endblock content %}

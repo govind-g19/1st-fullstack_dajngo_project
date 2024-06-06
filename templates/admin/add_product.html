@@ -1,0 +1,76 @@
+<!-- add_product.html -->
+
+{% extends "admin/admin-base.html" %}
+
+{% block title %} Add Product {% endblock title %}
+
+{% block pageheader %}
+<h2 class="page-font">Add Product</h2>
+{% endblock pageheader %}
+
+{% block content %}
+{% load static %}
+
+<div class="col-12">
+    <a href="{% url 'product_list' %}" type="button" class="btn btn-outline-secondary">Back</a>
+    <hr>
+
+    <div class="text-light bg-dark p-3 mt-0 rounded-4 col-8 m-5">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Display potential error messages -->
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <strong></strong> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+
+            <div class="mb-2">
+                <label for="product_name" class="form-label">Product Name</label>
+                <input type="text" class="form-control" id="product_name" name="product_name" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="product_images">Upload Image</label>
+                <input type="file" class="form-control" id="product_images" name="product_images" accept="image/*" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="more_product_images">Upload More Images</label>
+                <input type="file" class="form-control" id="more_product_images" name="more_product_images" accept="image/*" multiple>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="category">Category</label>
+                <select class="form-select" id="category" name="category" required>
+                    <option value="" disabled selected>Select Category</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.category_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-2">
+                <label for="description" class="form-label">Product Description</label>
+                <input type="text" class="form-control" id="description" name="description" required>
+            </div>
+
+            <div class="mb-2">
+                <label for="price" class="form-label">Product Price</label>
+                <input type="text" class="form-control" id="price" name="price" required>
+            </div>
+
+            <div class="mb-2">
+                <label for="quantity" class="form-label">Product Quantity</label>
+                <input type="text" class="form-control" id="quantity" name="quantity" required>
+            </div>
+
+            <div class="input_group">
+                <button type="submit" class="btn btn-secondary mb-2">Submit</button>
+            </div>
+            <hr>
+        </form>
+    </div>
+</div>
+{% endblock content %}

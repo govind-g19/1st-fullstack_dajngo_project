@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}\V/ Kart - My Cart{% endblock title %}
+
+{% block pageheader %}
+  <h2>My Cart</h2>
+{% endblock pageheader %}
+
+{% block content %}
+  {% load static %}
+ 
+
+ <div class ="container">
+  {% if not cart_items %}
+  <br><br><h3 class="text-center">Your cart is Empty , Shop now & have great fun <br><br><a class="btn btn-sm btn-outline-secondary text-center " href="{% url 'shop'  %}">SHOP NOW</a></h3>
+  
+  {% else %}
+      <div class="row ">
+        <div class="col-md-9">
+          <table class="table table-hover fw-medium" style="border: 2px solid gray;">
+            <thead>
+              <tr>
+                <th scope="col-" class="fw-bolder" style="width: 10%;">Product</th>
+                <th scope="col-" class="fw-bolder" style="width: 10%;">Variant</th>
+                <th scope="col" class="fw-bolder" style="width: 10%;">Image</th>
+                <th scope="col" class="fw-bolder" style="width: 10%;">Quantity</th>
+                <th scope="col" class="fw-bolder" style="width: 10%;">Price</th>
+                <th scope="col" class="fw-bolder" style="width: 10%;">remove</th>
+              </tr>
+            </thead>
+            <tbody>
+            
+                {% for cart_item in cart_items %}
+                  <tr>
+                    <td>{{ cart_item.product.product_name }}</td>
+                    <td>{{ cart_item.variant }}</td>
+                    <td><img src="{{ cart_item.product.product_images.url }}" alt="Product Image" style="width: 50px;"></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='{% url 'reduce_quantity' cart_item.id %}'">-</button>
+                        {{ cart_item.added_quantity }}
+                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='{% url 'add_quantity' cart_item.id %}'">+</button>
+                    </td>
+                    <td>₹{{ cart_item.sub_total }}</td>
+                    <td>
+                        <a href="{% url 'remove_cart' cart_item.id %}" class="btn btn-sm btn-outline-danger">X</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+
+                
+             
+            </tbody>
+          </table>
+        </div>
+    
+        <div class="col-lg-2">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Total</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="total-data">
+                <td><strong>Subtotal: </strong></td>
+                <td>₹{{ total }}</td>
+              </tr>
+              <tr class="total-data">
+                <td><strong>GST: </strong></td>
+                <td>₹{{ tax }}</td>
+              </tr>
+              <tr class="total-data">
+                <td><strong>Shipping: </strong></td>
+                <td>₹{{ shipping }}</td>
+              </tr>
+              <tr class="total-data">
+                <td><strong>Grand Total: </strong></td>
+                <td>₹{{ grand_total }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="d-flex justify-content-between col-12" style="max-width: max-content;">
+            <a href="{% url 'check_out' %}" class="btn btn-outline-secondary rounded-4">Check Out</a>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      <div class="col-8">
+        {% for message in messages %}
+            <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
+                <strong></strong> {{message}}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+    </div>
+    
+    
+ </div>
+ 
+{% endblock content %}

@@ -1,0 +1,148 @@
+{% extends 'admin/admin-base.html' %}
+{% load static %}
+{% block pageheader %}
+<h1>Welcome {{ admin_name }}!   </h1>
+{% endblock pageheader %}</a>
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+  <div class="row">
+    {% comment %} <div class="col-lg-12 mb-4 order-0">
+      <div class="card">
+        <div class="d-flex align-items-end row">
+          <div class="col-sm-7">
+            <div class="card-body">
+              <h1 class="card-title text-primary"> 🎉</h1>
+            </div>
+          </div>
+          <div class="col-sm-5 text-center text-sm-left">
+            <div class="card-body pb-0 px-0 px-md-4">
+              <img src="{% static 'adminapp/img/illustrations/man-with-laptop-light.png' %}" height="140" alt="View Badge User" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div> {% endcomment %}
+    <div class="col-lg-8 d-flex align-items-stretch mt-5">
+      <div class="card w-100">
+        <div class="card-body">
+          <div class="d-sm-flex d-block align-items-center justify-content-between mb-9">
+            <div class="mb-3 mb-sm-0">
+              <h5 class="card-title fw-semibold">Sales Overview</h5>
+            </div>
+          </div>
+          <div>
+            <canvas id="myChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="row">
+        <div class="col-lg-12">
+          <div class="card overflow-hidden mt-5">
+            <div class="card-body p-4">
+              <h5 class="card-title mb-9 fw-semibold">Yearly Order Count</h5>
+              <div class="row align-items-center">
+                <div class="col-8">
+                  <h4 class="fw-semibold mb-3">{{ order_count }}</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-12">
+          <div class="card mt-5">
+            <div class="card-body">
+              <div class="row align-items-start">
+                <div class="col-8">
+                  <h5 class="card-title mb-9 fw-semibold">Monthly Earnings</h5>
+                  <h4 class="fw-semibold mb-3">₹{{ monthly_earnings }}</h4>
+                  <div class="d-flex align-items-center pb-1">
+                    <span class="me-2 rounded-circle bg-light-danger round-20 d-flex align-items-center justify-content-center">
+                      <i class="ti ti-arrow-down-right text-danger"></i>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="earning"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-lg-12 d-flex align-items-stretch mt-5">
+      <div class="card w-100">
+        <div class="card-body p-4">
+          <h5 class="card-title fw-semibold mb-4">Recent Transactions</h5>
+          <div class="table-responsive">
+            <table class="table text-nowrap mb-0 align-middle">
+              <thead class="text-dark fs-4">
+                <tr>
+                  <th class="border-bottom-0">
+                    <h6 class="fw-semibold mb-0">Id</h6>
+                  </th>
+                  <th class="border-bottom-0">
+                    <h6 class="fw-semibold mb-0">Address</h6>
+                  </th>
+                  <th class="border-bottom-0">
+                    <h6 class="fw-semibold mb-0">Date</h6>
+                  </th>
+                  <th class="border-bottom-0">
+                    <h6 class="fw-semibold mb-0">Price</h6>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for order in orders %}
+                <tr class="order-row">
+                  <td class="border-bottom-0">
+                    <h6 class="fw-semibold mb-0">{{ forloop.counter }}</h6>
+                  </td>
+                  <td class="border-bottom-0">
+                    <h6 class="fw-semibold mb-1">{{ order.delivery_address.full_name }}</h6>
+                    <span class="fw-normal">{{ order.delivery_address.address_line_1 }} - {{ order.delivery_address.city }}</span>
+                  </td>
+                  <td class="border-bottom-0">
+                    <p class="mb-0 fw-normal">{{ order.order_date }}</p>
+                  </td>
+                  <td class="border-bottom-0">
+                    <h6 class="fw-semibold mb-1">{{ order.order_total }}</h6>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('myChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: {{ dates|safe }},
+      datasets: [{
+        label: 'Daily Order Counts',
+        data: {{ counts|safe }},
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1,
+        fill: false
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

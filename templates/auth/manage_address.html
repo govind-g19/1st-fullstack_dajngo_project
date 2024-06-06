@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}\V/ Kart - My Cart{% endblock title %}
+
+{% block pageheader %}
+  <h2>Address</h2>
+{% endblock pageheader %}
+
+{% block content %}
+  {% load static %}
+  
+  <div class="container">
+    {% if addresses %}
+
+    <div class="col-12">
+      <div class="card" >
+        <div class="card-body">
+          <h5 class="card-title"> Shipping Addres</h5>
+              <p class="card-text">Nmae: {{ main_addresses.first_name }}</p>
+              <p class="card-text">Phone: {{ main_addresses.phone_number }}</p>
+              <p class="card-text">Address: {{ main_addresses.house_address }},{{ main_addresses.city }}, {{ main_addresses.state }}</p>
+              <p class="card-text">Pin code: {{ main_addresses.pin_code }}</p>
+              <p class="card-text">Landmark: {{ main_addresses.land_mark }}</p>
+              <button class="btn btn-outline-secondary collapsed" style="border-radius: 35px;" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                Shipping Address
+              </button>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <!-- Address selection and form -->
+      <div class="box">
+        <br>
+        <div class="collapse" id="collapseTwo">
+          <div class="card-body">
+            <div class="shipping-address-form">
+              {% for address in addresses %}
+              <!-- Address cards -->
+              <div class="card mb-2">
+                <div class="card-body">
+                  <h5 class="card-title">{{ address.first_name }} {{ address.second_name }}</h5>
+                  <p class="card-text">{{ address.house_address }}, {{ address.city }},, {{ address.state }} {{ address.pin_code }}</p>
+                  <p class="card-text">Phone: {{ address.phone_number }}</p>
+                  <p class="card-text">Landmark: {{ address.land_mark }}</p>
+                  <a href="{% url 'edit_address' address_id=address.id %}?source=manage_address" class="text-dark">
+                    <span class="material-symbols-outlined">edit</span></a>
+                
+                    <!-- Delete button -->
+                    <a href="{% url 'delete_address' address_id=address.id %}" class="text-danger"><span class="material-symbols-outlined">
+                      delete
+                      </span></a>
+                    <!-- Select button -->
+                    {% if address.is_primary %}
+                    <!-- Display "Selected" button if address is already selected -->
+                    <button class="btn btn-secondary  ms-2" style="border-radius: 30px;">Selected</button>
+                    {% endif %}
+
+                    <div class="btn-group" role="group" aria-label="Address Actions">
+                    </div>
+                </div>
+              </div>
+              {% endfor %}
+              <!-- Add Address button -->
+              <br>
+              <a href="{% url 'add_address' %}?source=add_address" class="btn btn-dark" style="border-radius: 35px;">Add Address</a>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <h5>No Addresses Found</h5>
+        <a href="{% url 'add_address' %}?source=add_address" class="btn btn-secondary" style="border-radius: 35px;">Add Address</a>
+        {% endif %}
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,59 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} My Reviews {% endblock title %}
+
+{% block pageheader %}
+<h2 class="page-font">My Reviews</h2>
+{% endblock pageheader %}
+
+{% block content %}
+{% load static %}
+<div class="container">
+    <div class="row">
+        <div class="col-8">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <strong></strong> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="col-8">
+            {% if variant_reviews %}
+                {% for review in variant_reviews %}
+                <div class="card mb-3 {% if review.rating <= 2 %} border-danger {% elif review.rating >= 3 %} border-success {% endif %}">
+                    <div class="card-header">
+                        {{ review.variant.product.first.product_name }} with {{ review.variant.ram }} RAM & {{ review.variant.internal_memory }} ROM:
+                        {% if review.rating >= 3 %}
+                        <button type="button" class="btn btn-sm btn-success">
+                            {{ review.rating }} <span class="star-filled">★</span>
+                        </button>
+                        {% elif review.rating < 3 %}
+                        <button type="button" class="btn btn-sm btn-danger">
+                            {{ review.rating }} <span class="star-filled">★</span>
+                        </button>
+                        {% else %}
+                        <button type="button" class="btn btn-sm btn-secondary">
+                            {{ review.rating }} <span class="star-filled">★</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">{{ review.comment }}</p>
+                        <footer class="blockquote-footer">{{ review.user.username }}<cite title="Source Title"></cite></footer>
+                        <!-- Block/Unblock Review Link -->
+                        {% if review.status %}
+                            <a href="{% url 'admin_block_review' review_id=review.id %}" class="btn btn-sm btn-outline-danger">Block</a>
+                        {% else %}
+                            <a href="{% url 'admin_unblock_review' review_id=review.id %}" class="btn btn-sm btn-danger">Unblock</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No reviews available for this variant.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Orders - Order Status{% endblock %}
+
+{% block pageheader %}
+    <h2 class="page-font">Pending Orders</h2>
+{% endblock %}
+
+{% block content %}
+    {% load static %}
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <strong>{{ message.tags|capfirst }}:</strong> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            {% for incomplete_order in incomplete_orders %}
+                <div class="card w-75 mb-3">
+                    <div class="card-body d-flex justify-content-between">
+                        <div>
+                            <p class="card-text fw-medium">Order id: {{ incomplete_order.order_id }}</p>
+                            <p class="card-text fw-medium">Order Status: {{ incomplete_order.status }}</p>
+                            <p class="card-text fw-medium">Order Date & Time: {{ incomplete_order.order_date }}</p>
+                            <p class="card-text fw-medium">Order Total: Rs. {{ incomplete_order.grand_total }}</p>
+                            <p class="card-text fw-medium">Payment Method: {{ incomplete_order.payment_method }}</p>
+                        </div>
+                        <a href="{% url 'del_incomplete_order' orderid=incomplete_order.id %}">
+                            <span class="material-symbols-outlined">close</span>
+                        </a>
+                    </div>
+
+                    <table class="table table-hover fw-medium" style="border: 2px solid gray;">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="fw-bolder" style="width: 10%;">Product</th>
+                                <th scope="col" class="fw-bolder" style="width: 10%;">Variant</th>
+                                <th scope="col" class="fw-bolder" style="width: 10%;">Image</th>
+                                <th scope="col" class="fw-bolder" style="width: 10%;">Quantity</th>
+                                <th scope="col" class="fw-bolder" style="width: 10%;">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order_item in incomplete_order.orderitem_set.all %}
+                                <tr>
+                                    <td>{{ order_item.product.product_name }}</td>
+                                    <td>{{ order_item.variant }}</td>
+                                    <td><img src="{{ order_item.product.product_images.url }}" alt="Product Image" style="width: 50px;"></td>
+                                    <td>{{ order_item.quantity }}</td>
+                                    <td>₹{{ order_item.price }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <div class="col-4">
+                        {% if incomplete_order.status != 'Cancelled' %}
+                            <a href="{% url 'order_failer' orderid=incomplete_order.id %}" class="btn btn-primary rounded-3">Complete Order</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+
+            {% if not incomplete_orders %}
+                <p class="fw-medium fs-5">No orders are pending. <a href="{% url 'shop' %}">Click here to buy</a></p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

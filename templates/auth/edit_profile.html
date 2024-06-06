@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}\V/ Kart - edit_profile{% endblock title %}
+
+{% block pageheader %}
+  <h2>Profile</h2>
+{% endblock pageheader %}
+
+{% block content %}
+  {% load static %}
+  
+  <div class="container">
+    <div class="row">
+      <div class="col-8">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <strong></strong> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+      </div>
+        <div class="col-8">
+            <div class="card">
+                <div class="card-body">
+                    <form class="row g-3" method="POST" action="{% url 'edit_profile' %}">
+                        {% csrf_token %}
+                        <div class="col-md-6">
+                            <label for="inputFirstname" class="form-label">First name</label>
+                            <input type="text" class="form-control" name="first_name" value="{{ address.first_name }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="inputPassword4" class="form-label">Second Name</label>
+                            <input type="text" class="form-control" name="second_name" value="{{ address.second_name }}">
+                        </div>
+                        <div class="col-12">
+                            <label for="inputusername" class="form-label">User Name</label>
+                            <input type="text" class="form-control" name="username" value="{{ current_user.username }}">
+                        </div>
+                        <div class="col-12">
+                            <label for="inputAddress2" class="form-label">Email ID</label>
+                            <input type="email" class="form-control" name="email" value="{{ current_user.email }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="inputCity" class="form-label">Phone number</label>
+                            <input type="number" class="form-control" name="phone_number" value="{{ address.phone_number }}">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-outline-secondary">Update</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

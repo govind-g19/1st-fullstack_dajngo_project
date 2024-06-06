@@ -1,0 +1,83 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} Edit Variant {% endblock title %}
+
+{% block pageheader %}
+<h2 class="page-font">Edit Variant</h2>
+{% endblock pageheader %}
+
+{% block content %}
+{% load static %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <strong></strong> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        <form method="POST">
+            {% csrf_token %}
+            {% for field, errors in form.errors.items %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong>Error:</strong> {% for error in errors %} {{ error }} {% endfor %}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+            <div class="mb-2">
+                <label for="id_product" class="form-label">Product</label>
+                <select class="form-select" name="product" required>
+                    {% for product in products %}
+                        <option value="{{ product.id }}" {% if product.id in form.product.value %}selected{% endif %}>
+                            {{ product.product_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-2">
+                <label for="ram" class="form-label">RAM</label>
+                <select class="form-select" name="ram" required>
+                    <option value="4GB" {% if form.ram.value == "4GB" %}selected{% endif %}>4GB</option>
+                    <option value="8GB" {% if form.ram.value == "8GB" %}selected{% endif %}>8GB</option>
+                    <option value="16GB" {% if form.ram.value == "16GB" %}selected{% endif %}>16GB</option>
+                </select>
+            </div>
+            
+            <div class="mb-2">
+                <label for="internal_memory" class="form-label">Internal Memory</label>
+                <select class="form-select" name="internal_memory" required>
+                    <option value="64GB" {% if form.internal_memory.value == "64GB" %}selected{% endif %}>64GB</option>
+                    <option value="128GB" {% if form.internal_memory.value == "128GB" %}selected{% endif %}>128GB</option>
+                    <option value="256GB" {% if form.internal_memory.value == "256GB" %}selected{% endif %}>256GB</option>
+                </select>
+            </div>
+
+            <div class="mb-2">
+                <label for="final_price" class="form-label">Final Price</label>
+                <input type="text" class="form-control" name="final_price" required value="{{ form.final_price.value }}">
+            </div>
+
+            <div class="mb-2 form-check">
+                <input type="checkbox" class="form-check-input" id="is_available" name="is_available" {% if form.is_available.value %}checked{% endif %}>
+                <label class="form-check-label" for="is_available">Is Available</label>
+            </div>
+
+            <div class="mb-2">
+                <label for="quantity" class="form-label">Quantity</label>
+                <input type="number" class="form-control" name="quantity" required value="{{ form.quantity.value }}">
+            </div>
+
+            <div class="mb-2">
+                <label for="low_stock_threshold" class="form-label">Low Stock Threshold</label>
+                <input type="number" class="form-control" name="low_stock_threshold" required value="{{ form.low_stock_threshold.value }}">
+            </div>
+            
+            <button type="submit" class="btn btn-secondary mb-2">Submit</button>
+        </form>
+    </div>
+</div>
+{% endblock content %}

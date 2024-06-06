@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}My Wallet{% endblock title %}
+
+{% block pageheader %}
+<h2 class="page-font">My Wallet</h2>
+{% endblock pageheader %}
+
+{% block content %}
+{% load static %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-8">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <strong></strong> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="col-12">
+            <div class="card text-center rounded-4" style="width: 20rem;">
+                <div class="card-body">
+                    <h5 class="card-title"><span class="material-symbols-outlined">wallet</span></h5>
+                    <h5 class="card-title">Rs.{{ my_wallet.balance }}</h5>
+                    <button type="button" class="btn btn-primary rounded-4" onclick="showForm('credit')">Credit</button>
+                    <button type="button" class="btn btn-primary rounded-4" onclick="showForm('debit')">Debit</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 mt-3">
+            <form id="creditForm" style="display: none;" action="{% url 'my_wallet' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="add" value="add">
+                <label for="amount" class="form-label">Amount To Credit</label>
+                <input type="text" class="form-control" name="amount" required>
+                <button type="submit" class="btn btn-secondary mb-2 mt-2">Submit</button>
+            </form>
+            <form id="debitForm" style="display: none;" action="{% url 'my_wallet' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="withdraw" value="withdraw">
+                <label for="amount" class="form-label">Amount To Debit</label>
+                <input type="text" class="form-control" name="amount" required>
+                <button type="submit" class="btn btn-secondary mb-2 mt-2">Submit</button>
+            </form>
+        </div>
+        <div class="col-12 mt-3">
+            <div class="accordion rounded-4" id="reviewAccordion">
+                <div class="accordion-item rounded-4">
+                    <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+                        <button class="accordion-button collapsed rounded-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter }}">
+                            <h4>Transactions</h4>
+                        </button>
+                    </h2>
+                    <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse rounded-4" aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#reviewAccordion">
+                        <div class="accordion-body">
+                            <div class="col-12">
+                                <table class="table table-hover table-borderless">
+                                    <thead>
+                                      <tr>
+                                        <th scope="col">ID</th>
+                                        <th scope="col">Transaction Type</th>
+                                        <th scope="col">Amount</th>
+                                        <th scope="col">Time of Transaction</th>
+                                      </tr>
+                                    </thead>
+                                {% for transaction in transactions %}
+                                    <tbody>
+                                        
+                                      <tr>
+                                        <th scope="row">{{ transaction.id }}</th>
+                                        <td>{{ transaction.transaction_type }}</td>
+                                        <td>{{ transaction.amount }}</td>
+                                        <td>{{ transaction.timestamp }}</td>
+                                      </tr>
+                                    </tbody>
+                                {% endfor %}
+
+                                  </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showForm(action) {
+        if (action === 'credit') {
+            document.getElementById("creditForm").style.display = "block";
+            document.getElementById("debitForm").style.display = "none";
+        } else if (action === 'debit') {
+            document.getElementById("debitForm").style.display = "block";
+            document.getElementById("creditForm").style.display = "none";
+        }
+    }
+</script>
+
+{% endblock content %}

@@ -1,0 +1,91 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} Add Varients {% endblock title %}
+{% load static %}
+
+{% block pageheader %}
+<h2 class="page-font">Add Varients </h2>
+{% endblock pageheader %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        {% if form.errors %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+           
+           <ul>
+               {% for field, error_list in form.errors.items %}
+                   {% for error in error_list %}
+                       <li>{{ error }}</li>
+                   {% endfor %}
+               {% endfor %}
+           </ul>
+           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+       {% endif %}
+        <div class="col-md-12 mt-5">
+            <div class="card">
+
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+            
+
+            
+                        <div class="mb-2">
+                            <label for="id_product" class="form-label">Product</label>
+                            <select class="form-select" name="product" required>
+                                {% for product in products %}
+                                <option value="{{ product.id }}">{{ product.product_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+            
+                        <div class="mb-2">
+                            <label for="ram" class="form-label">RAM</label>
+                            <select class="form-select" name="ram" required>
+                                <option value="4GB">4GB</option>
+                                <option value="8GB">8GB</option>
+                                <option value="16GB">16GB</option>
+                            </select>
+                        </div>
+            
+                        <div class="mb-2">
+                            <label for="internal_memory" class="form-label">Internal Memory</label>
+                            <select class="form-select" name="internal_memory" required>
+                                <option value="64GB">64GB</option>
+                                <option value="128GB">128GB</option>
+                                <option value="256GB">256GB</option>
+                            </select>
+                        </div>
+            
+                        <div class="mb-2">
+                            <label for="final_price" class="form-label">Final Price</label>
+                            <input type="text" class="form-control" name="final_price" required>
+                        </div>
+            
+                        <div class="mb-2 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_available" name="is_available" checked>
+                            <label class="form-check-label" for="is_available">Is Available</label>
+                        </div>
+            
+                        <div class="mb-2">
+                            <label for="quantity" class="form-label">Quantity</label>
+                            <input type="number" class="form-control" name="quantity" value="1000" required>
+                        </div>
+                        <div class="mb-2">
+                            <label for="quantity" class="form-label">low_stock_threshold</label>
+                            <input type="number" class="form-control" name="low_stock_threshold" value="1000" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-secondary mb-2">Submit</button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock content %}

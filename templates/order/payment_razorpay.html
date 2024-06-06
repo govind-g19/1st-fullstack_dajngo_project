@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Razorpay Payment{% endblock title %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="card border-secondary mb-3">
+            <div class="card-header text-primary">
+                <h5>Pay with Razorpay</h5>
+            </div>
+            <div class="card-body text-secondary">
+                <h6 class="card-title">Confirm the order amount and phone number before making the payment</h6><br>
+                <form id="payment-form">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <label for="phoneNumber" class="col-sm-2 col-form-label">Phone Number</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" id="phoneNumber" value="{{ order.delivery_address.phone_number }}">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <label for="grandTotal" class="col-sm-2 col-form-label">Amount</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" id="grandTotal" value="{{ razorpay_amount }}">
+                        </div>
+                    </div>
+                    <button type="button" id="pay-btn" class="btn btn-primary">Confirm Payment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+var options = {
+    "key": "{{ razorpay_merchant_key }}",
+    "amount": "{{ razorpay_amount }}",
+    "currency": "{{ currency }}",
+    "name": "V Kart",
+    "description": "Purchase",
+    "order_id": "{{ razorpay_order_id }}",
+    "callback_url": "{{ callback_url }}",
+    "prefill": {
+        "contact": "{{ order.delivery_address.phone_number }}"
+    },
+    "theme": {
+        "color": "#FF0000" // Replace with your desired theme color
+    }
+};
+
+var rzp1 = new Razorpay(options);
+document.getElementById('pay-btn').addEventListener('click', function (e) {
+    rzp1.open();
+    e.preventDefault();
+});
+</script>
+
+{% endblock content %}

@@ -1,0 +1,77 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} admin-User   {% endblock title %}
+
+
+  
+</head>
+
+{% block pageheader %}
+<h2 class="page-font">User Details </h2>
+{% endblock pageheader %}
+{% block content %}
+{%load static%}
+
+
+{% for message in messages  %}
+<div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
+ <strong></strong> {{message}}
+ <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+{% endfor %}
+<div class="container">
+  <div class="row">
+      <div class="col-md-2 mb-3">
+        <select class="form-select bg-body-secondary " id="active-filter" onchange="applyFilter(this)">
+          <option value="">All</option>
+          <option value="active" {% if request.GET.active == 'active' %} selected {% endif %}>Active</option>
+          <option value="inactive" {% if request.GET.active == 'inactive' %} selected {% endif %}>Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class ="col-10 ">
+        <table class="table  table-hover table-borderless" style="border: 2px solid gray;">
+          <thead>
+            <tr>
+              
+                <th scope="col " class="fw-bolder">User</th>
+                <th scope="col " class="fw-bolder">Name </th>
+                <th scope="col " class="fw-bolder">Email ID</th>
+                <th scope="col " class="fw-bolder">Activation</th>
+            </tr>
+          </thead>
+          <hr>
+      
+          <tbody>
+              {% for value in users %}
+              
+              
+            <tr>
+              
+              <td>{{value.username}}</td>
+              <td>{{value.first_name }}</td>
+              <td>{{value.email}}</td>
+              <td>
+                  {% if value.is_active %}
+                      <a href="{% url 'block_user' value.id %}" class="btn btn-danger">Block</a>
+                  {% else %}
+                      <a href="{% url 'unblock_user' value.id %}" class="btn btn-success">Unblock</a>
+                  {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+</div>
+  <script>
+    function applyFilter(select) {
+      const activeFilter = select.value;
+      const url = window.location.pathname + '?active=' + activeFilter;
+      window.location.href = url;
+    }
+  </script>
+{% endblock content %}

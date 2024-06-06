@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders{% endblock title %}
+{% block pageheader %}
+<h2>My Orders</h2>
+{% endblock pageheader %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        {% for order in orders %}
+        <div class="card mb-5">
+            <div class="card-body invoice-container p-3 m-2"> <!-- Move invoice-container class here -->
+                <div class="mb-3">
+                    <div class=' d-flex justify-content-between'>
+                        <p class="card-text fw-medium">Order ID: {{ order.order_id }}</p>
+                        <a href="{% url 'delete_myorder' orderid=order.id %}"><span class="material-symbols-outlined">
+                        close
+                        </span></a>
+                    </div>
+                    <p class="card-text fw-medium">Date of order: {{ order.order_date }} </p>
+                </div>
+                {% comment %} <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>RAM</th>
+                            <th>Memory</th>
+                            <th>Quantity</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.orderitem_set.all %}
+                        <tr>
+                            <td>{{ item.product }}</td>
+                            <td>{{ item.ram }}</td>
+                            <td>{{ item.memory }}</td> <!-- Correct typo in 'memory' -->
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ order.payment_method }}</td> <!-- Move payment_method outside the loop -->
+                            <td>{{ order.status }}</td> <!-- Move status outside the loop -->
+                            <td>{{ item.price }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table> {% endcomment %}
+                <table class="table table-hover fw-medium" style="border: 2px solid gray;">
+                    <thead>
+                        <th scope="col-" class="fw-bolder" style="width: 10%;">Product</th>
+                        <th scope="col-" class="fw-bolder" style="width: 10%;">Variant</th>
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Image</th>
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Quantity</th>
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Payment Method</th>
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Price</th>
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Status</th>
+
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for order_item in order.orderitem_set.all %}
+                      <tr>
+                          <td>{{ order_item.product.product_name }}</td>
+                          <td>{{ order_item.variant }}</td>
+                          <td><img src="{{ order_item.product.product_images.url }}" alt="Product Image" style="width: 50px;"></td>
+                          <td>{{ order_item.quantity }}</td>
+                          <td>{{ order.payment_method }}</td>
+                          <td>₹{{ order_item.price }}</td>
+                          <td>{{ order.status }}</td>
+                      </tr>
+                      {% endfor %}
+                  </tbody>
+                  
+                  </table>
+                <div class="mt-3 justify-content-between">
+                    <p>Grand Total: {{ order.grand_total }}</p>
+                     <!-- Use class instead of id -->
+            <button class="btn btn-primary pdfButton">Download PDF</button>
+
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
+<script>
+    // Add an event listener to each download PDF button
+    document.querySelectorAll(".pdfButton").forEach(button => {
+        button.addEventListener("click", function () {
+            const invoiceContainer = this.closest(".invoice-container"); // Find the closest invoice-container
+            const pdfOptions = {
+                filename: 'invoice.pdf',
+                image: { type: 'jpeg', quality: 1.0 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().from(invoiceContainer).set(pdfOptions).save();
+        });
+    });
+</script>
+{% endblock content %}

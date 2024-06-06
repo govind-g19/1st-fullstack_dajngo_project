@@ -1,0 +1,137 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} admin-index {% endblock title %}
+
+{% block pageheader %}
+    <h2 class="page-font">Product Details</h2>
+{% endblock pageheader %}
+
+{% block content %}
+    {% load static %}
+
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <strong></strong> {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <form method="GET" class="d-inline">
+                    <select name="category_id" class="form-select mb-2">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.category_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <br>
+                    <button type="submit" class="btn btn-secondary">Filter</button>
+                </form>
+            </div>
+            <div class="col-md-6 text-end">
+                <a href="{% url 'add_product' %}" class="btn btn-secondary btn-sm rounded">Create new</a>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <table class="table table-hover fw-medium   text-center" style="border: 2px solid gray;">
+                    <thead>
+                    <tr>
+                        <th scope="col-" class="fw-bolder" style="width: 10%;">Name</th>
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Category</th>
+                        <th scope="col-2" class="fw-bolder " style="width: 30%;">Details</th>
+                        <th scope="col" class="fw-bolder" style="width: 20%;">Last Update</th>
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Image</th>
+                        {% comment %} <th scope="col" class="fw-bolder" style="width: 10%;">Price</th> {% endcomment %}
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Availability</th>
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Varients</th>
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Edit</th>
+                        <th scope="col" class="fw-bolder" style="width: 10%;">Delete</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for value in products %}
+                        <tr>
+                            <td>{{ value.product_name }}</td>
+                            <td>{{ value.category }}</td>
+                            <td>
+                                {% if value.description|length > 70 %}
+                                    <div id="more_{{ value.id }}_wrapper">
+                                        <span id="short_description_{{ value.id }}">{{ value.description|truncatechars:70 }}</span>
+                                        <span id="more_description_{{ value.id }}" style="display: none;">{{ value.description }}</span>
+                                        <button onclick="toggleDescription('{{ value.id }}')" class="btn btn-link" id="viewMoreBtn_{{ value.id }}">View More</button>
+                                    </div>
+                                {% else %}
+                                    {{ value.description }}
+                                {% endif %}
+                            </td>
+                            
+
+                            <td>{{ value.modified_date }}</td>
+                            <td>
+                                {% if value.product_images %}
+                                    <img src="{{ value.product_images.url }}" class="img-thumbnail" alt="Item" style="max-width: 100px;">
+                                {% else %}
+                                    No Image Available
+                                {% endif %}
+                            </td>
+
+                            {% comment %} <td>Rs.{{ value.price }}</td> {% endcomment %}
+                            {% if value.available %}
+                                <td>Available</td>
+                            {% else %}
+                                <td class="text-danger">Blocked</td>
+                            {% endif %}
+                            <td>
+                                <a href="{% url 'view_variant' value.id %}" class="text-dark-emphasis"> <span class="material-symbols-outlined">
+                                    visibility
+                                    </span> <p class="text-dark fw-bolder">view</p></a>
+                            </td>
+
+                            <td>
+                                <a href="/adminmanager/edit_product/{{ value.id }}" class="text-dark"><span class="material-symbols-outlined">
+                                    edit
+                                    </span></a>
+                            </td>
+                            <td>
+                                {% if not value.soft_deleted %}
+                                    <a href="{% url 'soft_delete_product' value.id %}" class="text-danger"> <span class="material-symbols-outlined">
+                                        delete
+                                        </span></a>
+                                {% else %}
+                                    <a href="{% url 'undo_soft_delete_product' value.id %}" class="btn btn-success">Undo</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleDescription(productId) {
+            var moreText = document.getElementById("more_description_" + productId);
+            var shortText = document.getElementById("short_description_" + productId);
+            var btnText = document.getElementById("viewMoreBtn_" + productId);
+    
+            if (moreText && shortText && btnText) {
+                if (moreText.style.display === "none") {
+                    moreText.style.display = "inline";
+                    shortText.style.display = "none";
+                    btnText.innerHTML = "View Less";  // Change button text to "View Less"
+                } else {
+                    moreText.style.display = "none";
+                    shortText.style.display = "inline";
+                    btnText.innerHTML = "View More";  // Change button text to "View More"
+                }
+            } else {
+                console.error("Elements not found.");
+            }
+        }
+    </script>
+    
+{% endblock content %}

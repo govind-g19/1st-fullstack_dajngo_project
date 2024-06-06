@@ -1,0 +1,103 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} Add Variants {% endblock title %}
+
+{% block pageheader %}
+    <h2 class="page-font">Variants</h2>
+{% endblock pageheader %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <a href="{% url 'add_varient' %}" type="button" class="btn btn-outline-secondary">Add Variant</a>
+            <hr>
+        </div>
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <strong></strong> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+
+        </div>
+        <div class="col-md-12">
+            <div class="card ">
+                <div class="card-header">
+                    {% if not product.available %}
+                        <h5 class="text-danger">{{ product.product_name }} Not listed</h5>
+                        {% else %}
+                        <h5 class="">{{ product.product_name }}</h5>
+                        {% endif %}
+                </div>
+                {% if variants %}
+                <table class="table table-borderless table-hover">
+                    <thead class="fw-bolder">
+                        <tr>
+                            <th scope="col" style="width: 10%;">RAM</th>
+                            <th scope="col">Memory Storage</th>
+                            <th scope="col">Price</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Available</th>
+                            {% comment %} <th scope="col">Product Availability</th> {% endcomment %}
+                            <th scope="col">Product Rating</th>
+                            <th scope="col">Edit</th>
+                            <th scope="col">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for variant in variants %}
+                        <tr>
+                            <td>{{ variant.ram }}</td>
+                            <td>{{ variant.internal_memory }}</td>
+                            <td>{{ variant.final_price }}</td>
+                            <td>{{ variant.quantity }}</td>
+                            {% if variant.is_available %}
+                            <td>Available</td>
+                            {% else %}
+                            <td class="text-danger">Not Available</td>
+                            {% endif %}
+                            <td>
+                                {% for variant_id, average_rating in variant_ratings.items %}
+                                {% if variant_id == variant.id %}
+                                    {% if average_rating >= 3 %}
+                                        <a href="{% url 'admin_view_review'  variant_id %}" class="btn btn-sm btn-success rounded-5" style="padding: 5px 10px; font-size: 12px; ">
+                                            {{ average_rating }} <span class="star-filled" >★</span>
+                                        </a>
+                                        {% elif average_rating < 3 %}
+                                        <a href="{% url 'admin_view_review'  variant_id %}" class="btn  btn-danger  rounded-5" style="padding: 5px 10px; font-size: 12px; ">
+                                            {{ average_rating }} <span class="star-filled">★</span>
+                                        </a>
+                                        {% else %}
+                                        <a href="{% url 'admin_view_review'  variant_id %}" class="btn btn-sm btn-secondary  rounded-5" style="padding: 5px 10px; font-size: 12px; ">
+                                            {{ average_rating }} <span class="star-filled">★</span>
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                            </td>
+                            <td> <a href="{% url 'edit_varient' id=variant.id %}"><span class="material-symbols-outlined">edit</span></td>
+                            </a><td>
+                                {% if variant.deleted %}
+                                <a href="{% url 'undo_delete_variant' variant.id %}" class="text-success">Undo</a>
+                                {% else %}
+                                <a href="{% url 'delete_variant' variant.id %}" class="text-danger"><span class="material-symbols-outlined">delete</span></a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div>
+                    <p class="fs-5">No variants added</p>
+                </div>
+                {% endif %}
+            </div>
+            <br>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

@@ -1,0 +1,111 @@
+/* Styles for the navbar links */
+.nav-link {
+    position: relative;
+    text-decoration: none;
+    color: black; /* Change as needed */
+    transition: color 0.3s ease; /* Transition for color change */
+}
+
+/* Underline effect */
+.nav-link:not(.dropdown-toggle)::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: black; /* Change to your desired underline color */
+    transition: width 0.3s ease; /* Transition for the underline effect */
+}
+
+/* Hover effect */
+.nav-link:hover {
+    color: black; /* Change to the color you want on hover */
+}
+
+/* Underline on hover */
+.nav-link:not(.dropdown-toggle):hover::after {
+    width: 100%; /* Show the underline when hovered */
+}
+
+
+.style-hover{
+    color: rgb(0, 0, 0);
+    text-decoration: none;
+    font-weight: normal;
+}
+
+.style-hover:hover{
+    color: black;
+    font-weight: bolder;
+}
+.gray-bg{
+    background:rgb(148, 147, 145);
+}
+.text_gray{
+    color:gray;
+}
+.text-light {
+    color: #ffffff; /* This sets the text color to white */
+}
+.gray-button{
+    background-color: gray; /* Set the background color to gray */
+    color: white; /* Set the text color to contrast with the background */
+
+}
+.btn-gray{
+    background:rgb(148, 147, 145);
+}
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Set minimum height to full viewport height */
+}
+
+main {
+    flex: 1; /* Grow to fill remaining space */
+}
+.page-font {
+    font-family: 'Crimson Pro', serif;
+}
+footer {
+    flex-shrink: 0; /* Prevent footer from shrinking */
+}
+
+/* CSS for rotating the logo */
+/* CSS for rotating the logo */
+@keyframes rotateLogo {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Apply the animation to the logo */
+#rotating-logo {
+    animation: rotateLogo 4s linear forwards; /* Modify the duration or animation properties as needed */
+}
+
+
+.menu-aside .menu-item.active .menu-link {
+    background-color: rgb(148, 147, 145);
+}
+.menu-aside .menu-item .icon {
+    color: black;
+    margin-right: 10px;
+    font-size: 24px;
+}
+/* Custom CSS */
+.carousel-item img {
+    height: 100px ;/* Set height to one-third of the viewport height minus a small margin */
+    object-fit: contain; /* Ensure full image visibility without overflow */
+    width: 100%; /* Take up the entire width */
+}
+
+/* CSS to hide dropdown menu initially */
+.dropdown-menu {
+    display: none;
+}
+

@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}\V/ Kart - Product Details{% endblock title %}
+{% block pageheader %}
+    <h2>{{ product.product_name }}</h2>      
+{% endblock pageheader %}
+{% block content %}
+    {% load static %}
+    <div class="container">
+        <div class="row">
+            <div class="col-8">
+                {% for message in messages %}
+                    <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
+                        <strong></strong> {{message}}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+            {% comment %} back button  {% endcomment %}
+            <div class="col-md-12">
+                <a href="{% url 'shop' %}" type="button" class="btn btn-outline-secondary"><span class="material-symbols-outlined">
+                    arrow_left
+                    </span></a>
+            </div>
+            <br><br><br>
+            {% comment %} img  {% endcomment %}
+            <div class="col-md-7 d-flex p-2 pb-2  rounded-4">
+                    <!-- sub-img -->
+                <div class="col-2" style="margin-left: 30px;">
+                    {% for img in product_imgs %}
+                        <button type="button" class="mb-2  rounded-4" onclick="toggleEnlargeImage('{{ img.image.url }}')">
+                            <img src="{{ img.image.url }}" class="img-thumbnail object-fit-contain border" style="width: 100%; max-width: 80px; height: auto;" alt="{{ product.product_name }}">
+                        </button>
+                    {% endfor %}
+                </div>
+                    <!-- main-img -->
+
+                <div class="col-4 img-thumbnail object-fit-contain border rounded-4 shadow" style="margin-top: 8px; margin-left:150px; height:380px; width:250px">
+                    <img src="{{ product.product_images.url }}" alt="{{ product.product_name }}" class="rounded-4" style="height:380px; width:250px;">
+                </div>
+            </div>
+            {% comment %} product info {% endcomment %}
+            <div class="col-md-4 justify-content-center align-items-center p-2 mt-2" style="margin-left:0px;">
+                <h6>{{ product.product_name }}</h6>
+                <p class=fs-5>
+                    {% if average_rating > 3 %}
+                        <span class="badge bg-success">
+                            {{ average_rating | floatformat:1 }} <span class="star-filled">★</span>
+                        </span>
+                    {% elif average_rating < 3 %}
+                        <span class="badge bg-danger">
+                            {{ average_rating | floatformat:1 }} <span class="star-filled">★</span>
+                        </span>
+                    {% else %}
+                        <span class="badge bg-secondary">
+                            {{ average_rating | floatformat:1}} <span class="star-filled">★</span>
+                        </span>
+                    {% endif %}
+                    </p>
+               <p> {{product.category}}<br>
+                {{product.description}}<br></p>
+                <p class="fw-semibold text-decoration-line-through text-danger">Rs: 95000</p>
+               
+                <form method="post" action="{% url 'update_price' product.id %}" class="rounded-4">
+                    {% csrf_token %}
+                    {% if variant_form %}
+                        {{ variant_form.ram }}
+                        {{ variant_form.internal_memory }}
+                    {% endif %}
+                    <button type="submit" class="btn btn-outline-secondary ms-3 rounded-4">Select</button>
+                </form>
+                
+                {% if final_price == "Not Available"  %}
+                <p class="fw-semibold text-danger" id="final_price"> Not Available</p>
+                {% else %}
+                    <p class="fw-semibold ">Rs: {{ final_price }}</p>
+                {% endif %}
+
+                    {% if quantity %}
+                        <p>{{quantity }} piece available</p>
+                    {% else %}
+                        <p class="text-danger">Out of Stock</p>
+                    {% endif %}
+                    <hr class="text-black">
+                <a href="{% url 'add_to_cart' product_id=product.id %}?ram={{ variant_form.ram.value }}&internal_memory={{ variant_form.internal_memory.value }}" class="btn btn-outline-secondary me-3 rounded-4">Add to Cart</a>
+
+                    {% comment %} <a href ="#" type="button" class="btn btn-outline-secondary ms-3 rounded-4">Wish List</a> {% endcomment %}
+            </div>
+            <br><br><hr class="mt-3"><br><br>
+            {% comment %} Rating and review {% endcomment %}
+            <div class="col-12">
+                <div class="accordion" id="reviewAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter }}">
+                                <h4>Rating and review</h4>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#reviewAccordion">
+                            <div class="accordion-body">
+                                <div class="col-12">
+                                    {% for review in reviews %}
+                                    {% if review.status %}
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <div class="rating">
+                                                <p class="fs-5">{{ review.comment }}
+                                                    {% if review.rating >= 3 %}
+                                                    <button type="button" class="btn btn-sm btn-success">
+                                                        {{ review.rating }} <span class="star-filled">★</span>
+                                                    </button>
+                                                    {% elif review.rating < 3 %}
+                                                    <button type="button" class="btn btn-sm btn-danger">
+                                                        {{ review.rating }} <span class="star-filled">★</span>
+                                                    </button>
+                                                    {% else %}
+                                                    <button type="button" class="btn btn-sm btn-secondary">
+                                                        {{ review.rating }} <span class="star-filled">★</span>
+                                                    </button>
+                                                    {% endif %}
+                                                    
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                          <blockquote class="blockquote mb-0">
+                                            <p> {{ review.review }}</p>
+                                            <footer class="blockquote-footer">{{ review.user.username }}<cite title="Source Title"></cite></footer>
+                                          </blockquote>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+
+                                    <!-- Button trigger modal -->
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal" style="padding: 5px 10px; font-size: 12px;">
+                                        + Add Review
+                                    </button>
+                                    
+                                    <!-- Modal -->
+                                    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                            <h1 class="modal-title fs-5" id="exampleModalLabel">Add Review</h1>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="col-12">
+                                                    <form method="POST" action="{% url 'add_review' variant_id %}" class="review-form">
+                                                        {% csrf_token %}
+                                                        <div class="form-group">
+                                                            <label for="rating">Rating:</label>
+                                                            <select name="rating" id="rating" class="form-control">
+                                                                <option value="1">1</option>
+                                                                <option value="2">2</option>
+                                                                <option value="3">3</option>
+                                                                <option value="4">4</option>
+                                                                <option value="5">5</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label for="comment">Comment:</label>
+                                                            <input type="text" name="comment" id="comment" class="form-control">
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label for="review">Review:</label>
+                                                            <textarea name="review" id="review" rows="4" cols="50" class="form-control"></textarea>
+                                                        </div>
+                                                        <br>
+                                                        <button type="submit" class="btn btn-primary">Submit Review</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        </div>
+                                    </div>
+
+                                
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="col-12">
+                other products
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        console.log(quantity)
+        function toggleEnlargeImage(imageUrl) {
+            var enlargedImage = document.getElementById('enlarged-image');
+
+            if (enlargedImage) {
+                // If the enlarged image already exists, remove it
+                document.body.removeChild(enlargedImage);
+            } else {
+                // If the enlarged image doesn't exist, create and display it
+                enlargedImage = document.createElement('div');
+                enlargedImage.innerHTML = '<img src="' + imageUrl + '" class="img-fluid object-fit-cover  rounded-4" alt="Enlarged Image"  style="max-width: 100%; max-height: 100%; padding: 10px; background: white; border: 2px solid black;"> ';
+                enlargedImage.id = 'enlarged-image';
+                enlargedImage.style.position = 'fixed';
+                enlargedImage.style.top = '0';
+                enlargedImage.style.left = '0';
+                enlargedImage.style.width = '100%';
+                enlargedImage.style.height = '100%';
+                enlargedImage.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                enlargedImage.style.display = 'flex';
+                enlargedImage.style.alignItems = 'center';
+                enlargedImage.style.justifyContent = 'center';
+                enlargedImage.style.zIndex = '1000';
+                enlargedImage.onclick = function () {
+                    // Clicking anywhere on the overlay will close it
+                    document.body.removeChild(enlargedImage);
+                };
+                document.body.appendChild(enlargedImage);
+            }
+        }
+    </script>
+{% endblock content %}

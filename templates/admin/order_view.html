@@ -1,0 +1,71 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %}Admin - User Orders{% endblock title %}
+
+{% block pageheader %}
+<h2 class="page-font">User Details</h2>
+{% endblock pageheader %}
+
+{% block content %}
+{% load static %}
+
+<div class="container mt-4">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+
+    <table class="table table-hover table-bordered">
+        <thead class="table">
+            <tr>
+                <th>Order ID</th>
+                <th>User</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Payment Method</th>
+                <th>Order Date</th>
+                <th>Items</th>
+                <th>Cancel</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.order_id }}</td>
+                <td>{{ order.user.username }}</td>
+                <td>₹{{ order.grand_total }}</td>
+                <td>
+                    {% if order.status == "Cancelled" %}
+                    <span class="text-danger">{{ order.status }}</span>
+                    {% elif order.status == "orderfailed" %}
+                    <span class="text-danger">{{ order.status }}</span>
+                    {% elif order.status == "OrderPending" %}
+                    <span class="text-warning">{{ order.status }}</span>
+                    {% else %}
+                    <span class="text-success">{{ order.status }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ order.payment_method }}</td>
+                <td>{{ order.order_date|date:"Y-m-d H:i" }}</td>
+                <td>
+                    <ul class="list-unstyled">
+                        {% for item in order.orderitem_set.all %}
+                        <li>{{ item.product.product_name }} - {{ item.variant }} - Quantity: {{ item.quantity }} - Price: ₹{{ item.price }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td>
+                    {% if not order.status == "Cancelled" %}
+                        <a href="{% url 'admin_delete_order' order.id %}" class="btn btn-danger btn-sm">Cancel</a>
+                        {% else %}
+                        <a class="btn btn-danger disabled" role="button" aria-disabled="true">Cancelled</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock content %}

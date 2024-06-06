@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}\V/ Kart - Edit Review{% endblock title %}
+
+{% block pageheader %}
+  <h2>Edit Review</h2>
+{% endblock pageheader %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <strong></strong> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="rating" class="form-label">Rating:</label>
+                            <select name="rating" id="rating" class="form-select">
+                                <option value="1" {% if review.rating == 1 %} selected {% endif %}>1</option>
+                                <option value="2" {% if review.rating == 2 %} selected {% endif %}>2</option>
+                                <option value="3" {% if review.rating == 3 %} selected {% endif %}>3</option>
+                                <option value="4" {% if review.rating == 4 %} selected {% endif %}>4</option>
+                                <option value="5" {% if review.rating == 5 %} selected {% endif %}>5</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Comment:</label>
+                            <textarea name="comment" id="comment" rows="4" cols="50" class="form-control">{{ review.comment }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="review" class="form-label">Review:</label>
+                            <textarea name="review" id="review" rows="8" cols="50" class="form-control">{{ review.review }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Review</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

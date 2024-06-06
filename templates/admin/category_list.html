@@ -1,0 +1,66 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} admin-index   {% endblock title %}
+
+
+
+{% block pageheader %}
+<h2 class="page-font">Category</h2>
+{% endblock pageheader %}
+{% block content %}
+{%load static%}
+
+
+
+<div>
+    <a href="{% url 'add_category' %}" type="button" class="btn btn-outline-secondary">Add More</a>
+    <table class="table  table-hover fw-medium" style="border: 2px solid gray;">
+        <thead>
+           {% for message in messages  %}
+              <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
+               <strong></strong> {{message}}
+               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+             </div>
+            {% endfor %}
+          <tr>
+            <th scope="col " class="fw-bolder" style="width: 10%;">ID</th>
+              <th scope="col " class="fw-bolder"  style="width: 20%;">Name</th>
+              <th scope="col " class="fw-bolder"  style="width: 30%;">Details </th>
+              <th scope="col " class="fw-bolder"  style="width: 10%;">Stock </th>
+              <th scope="col " class="fw-bolder"  style="width: 10%;">Edit</th>
+              <th scope="col " class="fw-bolder"  style="width: 10%;">Delate</th>
+          </tr>
+        </thead>
+        <hr>
+    
+        <tbody>
+            {% for value in cat %}
+            
+            
+          <tr>
+            <th scope="row">{{value.id}}</th>
+            <td class="p-2">{{value.category_name}}</td>
+            <td>{{value.category_details}}</td>
+            {% if value.is_available %}
+            <td>Available</td>
+            {% else %}
+            <td class="text-danger">Out of stock</td>
+            {% endif %}
+            <td> <a href="/adminmanager/edit_category/{{value.id}}" type="button" class="btn btn-outline-secondary"><i class="material-icons md-edit"></i></a></td>
+            <td>
+              {% if not value.soft_deleted %}
+              <a href="{% url 'soft_delete_category' value.id %}" class="btn btn-danger">Archive</a>
+          {% else %}
+              <a href="{% url 'undo_soft_delete_category' value.id %}" class="btn btn-success">Restore</a>
+          {% endif %}
+          
+                
+            </td>
+            
+            
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+{% endblock content %}

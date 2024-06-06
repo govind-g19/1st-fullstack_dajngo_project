@@ -1,0 +1,47 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} admin-index   {% endblock title %}
+
+
+
+{% block pageheader %}
+<h2 class="page-font">Edit Category </h2>
+{% endblock pageheader %}
+{% block content %}
+{%load static%}
+<div class= "col-12">
+  <a href="{% url 'category' %}" type="button" class="btn btn-outline-secondary">Back </a>
+  <hr>
+
+  <div class="text-light bg-dark p-3 mt-0 rounded-4 col-8 m-5">
+    <form method="POST" action="/adminmanager/edit_category/{{ cat.id }}/">
+        {% csrf_token %}
+  
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <strong></strong> {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+  
+        <div class="mb-2">
+            <label for="name" class="form-label">Category Name</label>
+            <input type="text" class="form-control" name="category_name" value="{{ cat.category_name }}" required>
+        </div>
+  
+        <div class="mb-2">
+            <label for="exampleInputPassword1" class="form-label">Details</label>
+            <input type="text" class="form-control" name="category_details" id="exampleInputPassword1" required value="{{  cat.category_details }}">
+        </div>
+
+        <div class="input_group">
+            <button type="submit" class="btn btn-secondary mb-2">Submit</button>
+        </div>
+        <hr>
+    </form>
+  </div>
+
+</div>
+
+
+{% endblock content %}
