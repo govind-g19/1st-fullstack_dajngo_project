@@ -1,0 +1,40 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} Add Product Offers {% endblock title %}
+
+{% block pageheader %}
+<h2 class="page-font">Add Product Offers</h2>
+{% endblock pageheader %}
+
+{% block content %}
+{% load static %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            {% if form.errors %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+               
+               <ul>
+                   {% for field, error_list in form.errors.items %}
+                       {% for error in error_list %}
+                           <li>{{ error }}</li>
+                       {% endfor %}
+                   {% endfor %}
+               </ul>
+               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+           {% endif %}
+           <form method="POST">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="mb-3">
+                    {{ field.label_tag }}
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-secondary">Submit</button>
+        </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

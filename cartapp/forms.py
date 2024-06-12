@@ -1,6 +1,8 @@
 from django import forms
 from authapp.models import Address, Coupons
-from adminmanager.models import Category
+from django import forms
+# from django.utils import timezone
+from django.core.validators import MinValueValidator, RegexValidator
 
 
 class AddressForm(forms.ModelForm):
@@ -58,8 +60,58 @@ class AddressForm(forms.ModelForm):
 
 
 class CouponForm(forms.ModelForm):
-    brand = forms.ModelChoiceField(queryset=Category.objects.all(), empty_label=None, required=False)  # Assuming Category is the model for brand
-
     class Meta:
         model = Coupons
-        fields = ['description', 'minimum_amount', 'discount', 'valid_from', 'valid_to', 'brand']
+        fields = ['description', 'minimum_amount', 'discount', 'valid_from', 'valid_to']
+
+    description = forms.CharField(
+        max_length=100,
+        label="Description",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'id': 'description'})
+    )
+
+    minimum_amount = forms.IntegerField(
+        label="Minimum Amount",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'id': 'minimum_amount'}),
+        validators=[
+            MinValueValidator(0, message="Minimum amount must be a positive number"),
+            RegexValidator(r'^\d+$', message="Only numeric values are allowed for minimum amount")
+        ]
+    )
+
+    discount = forms.IntegerField(
+        label="Discount",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'id': 'discount'}),
+        validators=[
+            MinValueValidator(0, message="Discount must be a positive number"),
+            RegexValidator(r'^[0-9]+$', message="Discount must contain only numbers")
+        ]
+    )
+
+    valid_from = forms.DateTimeField(
+        label="Valid From",
+        widget=forms.DateTimeInput(attrs={'type': 'date', 'class': 'form-control', 'id': 'valid_from'})
+    )
+
+    valid_to = forms.DateTimeField(
+        label="Valid To",
+        widget=forms.DateTimeInput(attrs={'type': 'date', 'class': 'form-control', 'id': 'valid_to'})
+    )
+
+    def clean(self):
+        cleaned_data = super(CouponForm, self).clean()
+        valid_from = cleaned_data.get('valid_from')
+        valid_to = cleaned_data.get('valid_to')
+        discount = cleaned_data.get('discount')
+        minimum_amount = cleaned_data.get('minimum_amount')
+
+        # Check if the discount is less than or equal to the minimum amount
+        if discount is not None and discount >= minimum_amount:
+            raise forms.ValidationError("Discount must be greater than the minimum amount")
+
+        # Check if the valid_from date is before the valid_to date
+        if valid_from and valid_to:
+            if valid_from > valid_to:
+                raise forms.ValidationError("Valid from date cannot be after valid to date")
+
+        return cleaned_data

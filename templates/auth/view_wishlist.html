@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}\V/ Kart - Profile{% endblock title %}
+
+{% block pageheader %}
+  <h2>My wishlist</h2>
+{% endblock pageheader %}
+
+{% block content %}
+  {% load static %}
+  
+<div class="container">
+    <div class = "raw">
+        <div class="col-8">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <strong></strong> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+        </div>
+
+        <div class="col-12">
+          <table class="table table-hover fw-medium" style="border: 2px solid gray;">
+              <tbody>
+                  {% for item in wishlist_items %}
+                      <tr>
+                          <!-- Product Image -->
+                          <td style="width: 25%;">
+                              <a href="{% url 'product_details' product_id=item.product.id %}?variant_id={{ item.variant.id }}">
+                                  <img src="{{ item.product.product_images.url }}" alt="Product Image" style="width: 60px;"/>
+                              </a>
+                          </td>
+                          <!-- Product Name -->
+                          <td style="width: 20%;">
+                              <a href="{% url 'product_details' product_id=item.product.id %}?variant_id={{ item.variant.id }}" class="card-link" style="text-decoration: none;">
+                                  <strong>{{ item.product.product_name }}</strong>
+                              </a>
+                          </td>
+                          <!-- Variant Details -->
+                          <td style="width: 20%;">
+                              {{ item.variant.ram }} RAM, {{ item.variant.internal_memory }} ROM
+                          </td>
+      
+                          <!-- Add to Cart Button -->
+                          <td style="width: 20%;">
+                              <a href="{% url 'add_to_cart_from_wishlist' wishlist_item_id=item.id %}" class="btn btn-outline-secondary rounded-4">Add to Cart</a>
+                          </td>
+                          <!-- Delete Wishlist Item Button -->
+                          <td style="width: 20%;">
+                            <a href="{% url 'remove_from_wishlist' product_id=item.product.id %}?variant_id={{ item.variant.id }}" class="btn btn-sm btn-outline-danger">
+                                  <span class="material-symbols-outlined">delete</span>
+                              </a>
+                          </td>
+                      </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+      </div>
+      {% if wishlist_items %}
+      <div class="col-12 mb-3">
+        <!-- Add All to Cart Button -->
+        <a href="{% url 'add_all_to_cart' %}" class="btn btn-outline-secondary rounded-4">Add All to Cart</a>
+    </div>
+    {% else %}
+    <br><br><h3 class="text-center">Your Wish List is Empty , Shop now & have great fun <br><br><a class="btn btn-sm btn-outline-secondary text-center " href="{% url 'shop'  %}">SHOP NOW</a></h3>
+      {% endif %}
+
+
+
+    </div>
+</div>
+{% endblock content %}

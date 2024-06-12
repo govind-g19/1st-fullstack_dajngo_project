@@ -855,7 +855,7 @@ textarea.form-control {
 }
 
 .searchform button:hover {
-    background-color: #088178
+    background-color: #0a0a0a!important;
 }
 
 .searchform button:hover i {
@@ -869,8 +869,8 @@ textarea.form-control {
 }
 
 .form-check-input:checked {
-    background-color: #088178;
-    border-color: #088178
+    background-color: #060707;
+    border-color: #000000
 }
 
 .select2-container--default .select2-selection--single {
@@ -3493,7 +3493,7 @@ body.offcanvas-active {
 }
 
 .main-wrap .content-main {
-    min-height: calc(100vh - 110px)
+    min-height: calc(70vh - 80px)
 }
 
 .content-main {

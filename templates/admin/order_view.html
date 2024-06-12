@@ -3,7 +3,7 @@
 {% block title %}Admin - User Orders{% endblock title %}
 
 {% block pageheader %}
-<h2 class="page-font">User Details</h2>
+<h2 class="page-font">Order Details</h2>
 {% endblock pageheader %}
 
 {% block content %}
@@ -17,23 +17,25 @@
     </div>
     {% endfor %}
 
-    <table class="table table-hover table-bordered">
+    <table class="table table-hover table-borderless">
         <thead class="table">
             <tr>
                 <th>Order ID</th>
-                <th>User</th>
+                <th>Customer </th>
                 <th>Total</th>
                 <th>Status</th>
                 <th>Payment Method</th>
                 <th>Order Date</th>
                 <th>Items</th>
+                <th>Update Status</th>
                 <th>Cancel</th>
             </tr>
         </thead>
         <tbody>
             {% for order in orders %}
+
             <tr>
-                <td>{{ order.order_id }}</td>
+                <td><a href='{% url "detail_order" order.id %}' style='text-decoration: none;'>{{ order.order_id }}</a></td>
                 <td>{{ order.user.username }}</td>
                 <td>₹{{ order.grand_total }}</td>
                 <td>
@@ -56,15 +58,59 @@
                         {% endfor %}
                     </ul>
                 </td>
+            </a>
+                <td>
+                    {% if order.status != 'Cancelled' %}
+                    <a href="#" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal{{ order.id }}">Update</a>
+                    {% else %}
+                    <a href="#" class="btn btn-warning btn-sm disabled" data-bs-toggle="modal" data-bs-target="#exampleModal{{ order.id }}">Update</a>
+
+                    {% endif %}
+
+                    <!-- Modal -->
+                    <div class="modal fade" id="exampleModal{{ order.id }}" tabindex="-1" aria-labelledby="exampleModalLabel{{ order.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title fs-5" id="exampleModalLabel{{ order.id }}">{{ order.status }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form method="post" action="">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                        <select name="status" class="form-select rounded" style="width: 250px; height: 30px;">
+                                            {% for choice in form.status.field.choices %}
+                                                <option value="{{ choice.0 }}" {% if choice.0 == form.status.value %}selected{% endif %}>{{ choice.1 }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <br>
+                                        <br>
+                                        <button type="submit" class="btn btn-success btn-sm ">Save changes</button>
+                                        <button type="button" class="btn btn-dark btn-sm " data-bs-dismiss="modal">Close</button>
+                                        
+                                        
+                                    </form>
+
+                            </div>
+                        </div>
+                    </div>
+                    
+                </td>
                 <td>
                     {% if not order.status == "Cancelled" %}
                         <a href="{% url 'admin_delete_order' order.id %}" class="btn btn-danger btn-sm">Cancel</a>
-                        {% else %}
+                    {% else %}
                         <a class="btn btn-danger disabled" role="button" aria-disabled="true">Cancelled</a>
                     {% endif %}
                 </td>
+                
             </tr>
+            <!-- Modal -->
+
+            
             {% endfor %}
+        
         </tbody>
     </table>
 </div>

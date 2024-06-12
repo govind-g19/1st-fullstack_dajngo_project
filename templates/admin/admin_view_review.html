@@ -3,7 +3,7 @@
 {% block title %} My Reviews {% endblock title %}
 
 {% block pageheader %}
-<h2 class="page-font">My Reviews</h2>
+<h2 class="page-font">Product Reviews</h2>
 {% endblock pageheader %}
 
 {% block content %}
@@ -19,6 +19,17 @@
             {% endfor %}
         </div>
         <div class="col-8">
+            <form method="GET" class="d-flex align-items-end">
+                <div class="me-1">
+                    <select name="sort_by" class="form-select" style="font-size: 0.875rem;">
+                        <option value="">Sort By Rating</option>
+                        <option value="rating_desc" {% if sort_by == 'rating_desc' %} selected {% endif %}>Rating (High to Low)</option>
+                        <option value="rating_asc" {% if sort_by == 'rating_asc' %} selected {% endif %}>Rating (Low to High)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-dark" style="padding: 0.65rem .35rem; font-size: 0.975rem;">Apply</button>
+            </form>
+            <br><hr>
             {% if variant_reviews %}
                 {% for review in variant_reviews %}
                 <div class="card mb-3 {% if review.rating <= 2 %} border-danger {% elif review.rating >= 3 %} border-success {% endif %}">

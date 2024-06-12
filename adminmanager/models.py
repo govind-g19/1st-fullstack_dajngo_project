@@ -18,18 +18,31 @@ class Category(models.Model):
 
 # Product
 
+class ProductOffers(models.Model):
+    product_offer = models.CharField(max_length=100)
+    discount = models.IntegerField(default=0)
+    valid_from = models.DateTimeField()
+    valid_to = models.DateTimeField()
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.product_offer
+
+    def discount_percent(self):
+        self.discount = self.discount/100
+        return self.discount
+
 
 class Product(models.Model):
     product_name = models.CharField(max_length=200, unique=True)
     product_images = models.ImageField(upload_to="images/products")
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     description = models.TextField(max_length=500, blank=True)
-    price = models.IntegerField()
     create_date = models.DateField(auto_now_add=True)
     modified_date = models.DateField(auto_now=True)
     available = models.BooleanField(default=True)
     soft_deleted = models.BooleanField(default=False)
-    quantity = models.IntegerField(default=1000)
+    product_offer = models.ForeignKey(ProductOffers, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f"{self.product_name}"
@@ -75,6 +88,13 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"Image of {self.product.product_name}"
+
+
+# class CategoryOffers(models.Model):
+#     category_offer_name = models.CharField(max_length=100)
+#     discount = models.IntegerField(default=0)
+#     valid_from = models.DateTimeField()
+#     valid_to = models.DateTimeField()
 
 
 # to rate the varient

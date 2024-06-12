@@ -1,0 +1,122 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} Order Report {% endblock title %}
+
+{% block pageheader %}
+<h2 class="page-font">Sales Report {{order.order_id}} </h2>
+{% endblock pageheader %}
+
+{% block content %}
+{% load static %}
+<div class="container">
+    <div class="row">
+        <div class="col-8">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <strong></strong> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class='col-12'>
+    <form method="get" action="{% url 'sales_report' %}" class="mb-3">
+        <div class="row">
+            <div class="col-md-3">
+                <label for="start_date" class="form-label">Start Date:</label>
+                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date }}" required>
+            </div>
+            <div class="col-md-3">
+                <label for="end_date" class="form-label">End Date:</label>
+                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date }}" required>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary mt-4">Generate Report</button>
+            </div>
+        </div>
+    </form>
+    <div class="card">
+        <div class="card-body">
+        <h5 class="card-title">Total Sales Summary</h5>
+        <p>Total Revenue: {{ total_revenue }}</p>
+        <p>Total Units Sold: {{ total_units_sold }}</p>
+        <p>Average Order Value: {{ average_order_value }}</p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+    <h5 class="card-title">Top Selling Products</h5>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Quantity Sold</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in top_products %}
+            <tr>
+                <td>{{ product.product__product_name }}</td>
+                <td>{{ product.total_quantity }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+  </div>
+</div>
+<div class="card">
+    <div class="card-body">
+    <h5 class="card-title">Sales by Product Variant</h5>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Variant (RAM)</th>
+                <th>Variant (Internal Memory)</th>
+                <th>Total Revenue</th>
+                <th>Total Units Sold</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for variant in product_variant_sales %}
+            <tr>
+                <td>{{ variant.product__product_name }}</td>
+                <td>{{ variant.variant__ram }}</td>
+                <td>{{ variant.variant__internal_memory }}</td>
+                <td>{{ variant.total_revenue }}</td>
+                <td>{{ variant.total_units }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+    <h5 class="card-title">Sales by Category</h5>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Total Revenue</th>
+                <th>Total Units Sold</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in category_sales %}
+            <tr>
+                <td>{{ category.product__category__category_name }}</td>
+                <td>{{ category.total_revenue }}</td>
+                <td>{{ category.total_units }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+{% endblock %}

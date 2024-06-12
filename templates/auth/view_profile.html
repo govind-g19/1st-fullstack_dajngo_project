@@ -78,7 +78,6 @@
                     <thead>
                       <tr>
                         <th scope="col">Coupon code</th>
-                        <th scope="col">Brand</th>
                         <th scope="col">Discount price</th>
                         <th scope="col">Expire date</th>
                         <th scope="col">status</th>
@@ -88,7 +87,6 @@
                       {% for coupon, used in coupon_status %}
                       <tr>
                           <td>{{ coupon.coupon_code }}</td>
-                          <td>{{ coupon.brand }}</td>
                           <td>{{ coupon.discount }}</td>
                           <td>{{ coupon.valid_to }}</td>
                           {% if used %}

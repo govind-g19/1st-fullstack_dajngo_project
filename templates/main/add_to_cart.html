@@ -38,7 +38,7 @@
                     <td>
                         <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='{% url 'reduce_quantity' cart_item.id %}'">-</button>
                         {{ cart_item.added_quantity }}
-                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='{% url 'add_quantity' cart_item.id %}'">+</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='{% url 'add_quantity' cart_item.id %}?product_id={{ cart_item.product.id }}'">+</button>
                     </td>
                     <td>₹{{ cart_item.sub_total }}</td>
                     <td>

@@ -160,3 +160,10 @@ CRISPY_TEMPLATE_PACK = 'bootstrap'
 
 KEY = 'rzp_test_WV3YippkTn0iML'
 SECRET = 'dWcAannHA5sngjqGPYMsoVYC'
+
+ADMIN_DETAILS = {
+    'company_name': 'V Kart',
+    'address': 'Thrissur, kerala India ',
+    'contact_email': 'v_kart@example.com',
+    'phone': '(123) 456-7890',
+}

@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.db.models import Q
 from django.db.models import Case, When, BooleanField
 from django.db.models import Sum
-from django.urls import reverse
+# from django.urls import reverse
 
 
 def generate_cart_id():
@@ -28,6 +28,11 @@ def add_to_cart(request, product_id):
             ram=request.GET.get("ram"),
             internal_memory=request.GET.get("internal_memory"),
         ).first()
+
+        # to check the Availability
+        if not product.available or (variant and not variant.is_available):
+            messages.error(request, 'Out of stock')
+            return redirect('shop')
         if variant and variant.is_available:
             cart, created = Cart.objects.get_or_create(user=current_user)
             cart_item, item_created = CartItem.objects.get_or_create(
@@ -54,7 +59,8 @@ def add_to_cart(request, product_id):
             messages.error(request, "Selected variant is not available.")
             return redirect("product_details")
     else:
-        cart, created = Cart.objects.get_or_create(cart_id=generate_cart_id()(request))
+        cart, created = Cart.objects.get_or_create(
+            cart_id=generate_cart_id()(request))
         variant = Variant.objects.filter(
             product=product,
             ram=request.GET.get("ram"),
@@ -92,7 +98,8 @@ def cart_view(request, total=0, quantity=0, cart_items=None):
         shipping = 0
         grand_total = 0
         if request.user.is_authenticated:
-            cart_items = CartItem.objects.filter(user=request.user, is_active=True)
+            cart_items = CartItem.objects.filter(user=request.user,
+                                                 is_active=True)
         else:
             cart = Cart.objects.get(cart_id=generate_cart_id()(request))
             cart_items = CartItem.objects.filter(cart=cart, is_active=True)
@@ -140,6 +147,15 @@ def reduce_quantity(request, cart_item_id):
 def add_quantity(request, cart_item_id):
     try:
         cart_item = CartItem.objects.get(id=cart_item_id)
+        product_id = request.GET.get('product_id')
+
+        if product_id:
+            product = get_object_or_404(Product, id=product_id)
+
+            # Check if the product is available
+            if not product.available:
+                messages.error(request, 'The selected product is out of stock.')
+                return redirect("cart")
 
         if cart_item.added_quantity < cart_item.variant.quantity:
             cart_item.added_quantity += 1
@@ -184,15 +200,21 @@ def check_out(request):
 
     try:
         if request.user.is_authenticated:
-            cart_items = CartItem.objects.filter(user=request.user, is_active=True)
+            cart_items = CartItem.objects.filter(user=request.user,
+                                                 is_active=True)
             cart = Cart.objects.get(user=request.user)
         else:
             cart = Cart.objects.get(cart_id=generate_cart_id(request))
             cart_items = CartItem.objects.filter(cart=cart, is_active=True)
         for cart_item in cart_items:
+
+            if not cart_item.product.available or not cart_item.variant.is_available:
+                messages.error(request, f'The product "{cart_item.product.product_name}" is out of stock.')
+                return redirect("cart")
             if cart_item.added_quantity > cart_item.variant.quantity:
                 messages.error(
-                    request, f"Product variant {cart_item.variant} is out of stock."
+                    request, f'''Product variant
+                    {cart_item.variant} is out of stock.'''
                 )
                 return redirect("cart")
 
@@ -216,10 +238,12 @@ def check_out(request):
         # Calculate discounted total after applying coupons
         if applied_coupon_code:
             applied_coupons = UserCoupons.objects.filter(
-                user=request.user, coupon__coupon_code=applied_coupon_code, is_used=True
+                user=request.user, coupon__coupon_code=applied_coupon_code,
+                is_used=True
             )
             discount_amount = (
-                applied_coupons.aggregate(discount_amount=Sum("coupon__discount"))[
+                applied_coupons.aggregate(
+                    discount_amount=Sum("coupon__discount"))[
                     "discount_amount"
                 ]
                 or 0
@@ -228,9 +252,8 @@ def check_out(request):
         discount = total - discount_amount
 
         grand_total = discount + tax + shipping
-
-        if "applied_coupon_codes" in request.session:
-            del request.session["applied_coupon_codes"]
+        if "applied_coupon_code" in request.session:
+            del request.session["applied_coupon_code"]
 
     except (Cart.DoesNotExist, CartItem.DoesNotExist):
         pass
@@ -247,11 +270,14 @@ def check_out(request):
     # Annotate valid coupons with the is_used status for the current user
     valid_coupons = valid_coupons.annotate(
         is_used=Case(
-            When(usercoupons__user=request.user, usercoupons__is_used=True, then=True),
+            When(usercoupons__user=request.user, usercoupons__is_used=True,
+                 then=True),
             default=False,
             output_field=BooleanField(),
         )
     )
+
+    # Clear the applied coupon code from the session if present
 
     context = {
         "total": total,
@@ -269,43 +295,31 @@ def check_out(request):
     }
     return render(request, "main/check_out.html", context)
 
-
 @login_required
 def apply_coupon(request):
     if request.method == "POST":
         coupon_code = request.POST.get("coupon_code")
         cartitem = CartItem.objects.filter(user=request.user, is_active=True).first()
-        try:
-            coupon = Coupons.objects.get(coupon_code=coupon_code)
-        except Coupons.DoesNotExist:
-            messages.error(request, "Invalid coupon code")
-            return redirect("check_out")
+        # Fetch the coupon or return 404 if not found
+        coupon = get_object_or_404(Coupons, coupon_code=coupon_code)
 
+        # Check if the coupon is valid
         if not coupon.is_valid():
-            # time validity
             messages.error(request, "Coupon is not valid")
             return redirect("check_out")
 
-        if UserCoupons.objects.filter(
-            user=request.user, coupon__coupon_code=coupon_code, is_used=True
-        ).exists():
+        # Check if the coupon has already been used
+        if UserCoupons.objects.filter(user=request.user, coupon=coupon, is_used=True).exists():
             messages.error(request, "Coupon has already been used")
             return redirect("check_out")
 
+        # Check if the order total meets the minimum amount requirement
         if cartitem.variant.final_price < coupon.minimum_amount:
-            messages.error(request, "minimum amount not reached")
-            return redirect("check_out")
-
-        # Check if any product variant belongs to the coupon's category
-        coupon_category = coupon.brand
-        if not Variant.objects.filter(product__category=coupon_category).exists():
-            messages.error(request, "Coupon is not applicable to any products")
+            messages.error(request, "Minimum amount requirement not met")
             return redirect("check_out")
 
         # Check if the user has already used this coupon
-        user_coupon, created = UserCoupons.objects.get_or_create(
-            user=request.user, coupon=coupon
-        )
+        user_coupon, created = UserCoupons.objects.get_or_create(user=request.user, coupon=coupon)
         if user_coupon.is_used:
             messages.error(request, "Coupon has already been used")
             return redirect("check_out")
@@ -346,7 +360,8 @@ def delete_cart(request, cart_id):
         return redirect("shop")
     except Cart.DoesNotExist:
         # Redirect back to the checkout page with an error message
-        messages.error(request, "Cart does not exist or has already been deleted.")
+        messages.error(request,
+                       "Cart does not exist or has already been deleted.")
         return redirect("check_out")
 
 
@@ -377,7 +392,8 @@ def add_address(request):
             return redirect("add_address")
 
         if not phone_number.isdigit() or len(phone_number) not in [10, 11]:
-            messages.warning(request, "Phone number must be 10 or 11 digits long.")
+            messages.warning(request,
+                             "Phone number must be 10 or 11 digits long.")
             return redirect("add_address")
 
         if not pin_code.isdigit() or len(pin_code) != 6:

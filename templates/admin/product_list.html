@@ -43,6 +43,7 @@
                         <th scope="col" class="fw-bolder" style="width: 10%;">Category</th>
                         <th scope="col-2" class="fw-bolder " style="width: 30%;">Details</th>
                         <th scope="col" class="fw-bolder" style="width: 20%;">Last Update</th>
+                        <th scope="col" class="fw-bolder" style="width: 20%;">Product Offre</th>
                         <th scope="col" class="fw-bolder" style="width: 10%;">Image</th>
                         {% comment %} <th scope="col" class="fw-bolder" style="width: 10%;">Price</th> {% endcomment %}
                         <th scope="col" class="fw-bolder" style="width: 10%;">Availability</th>
@@ -67,9 +68,18 @@
                                     {{ value.description }}
                                 {% endif %}
                             </td>
+                            <td>
+                                <a href='{% url "product_offers_list" %}' class=text-decoration-none>
+                                    {% comment %} {% if not value.product_offer %}
+                                        <span class='text-danger'>No Product Offer</span> {% endcomment %}
+                                    {% if value.product_offer and not value.product_offer.active %}
+                                        <span class='text-dark'>{{ value.product_offer }} <span class='text-danger'> (not active)</span></span>
+                                    {% else %}
+                                        <span class='text-dark'>{{ value.product_offer }}</span>
+                                    {% endif %}
+                                </a>
+                            </td>
                             
-
-                            <td>{{ value.modified_date }}</td>
                             <td>
                                 {% if value.product_images %}
                                     <img src="{{ value.product_images.url }}" class="img-thumbnail" alt="Item" style="max-width: 100px;">

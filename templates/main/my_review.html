@@ -18,42 +18,44 @@
                 </div>
             {% endfor %}
         </div>
-        <div class="col-12">
-            {% for review in user_rview %}
-            {% if review.status %}
-            <div class="card mb-3 {% if review.rating == 1 %} border-danger {% elif review.rating == 2 %} border-danger  {% elif review.rating == 3 %} border-success {% elif review.rating == 4 %} border-success {% elif review.rating == 5 %} border-success {% endif %}">
-                <div class="card-header">
-                    {{ review.variant.product.first.product_name }} with {{ review.variant.ram}} RAM & {{ review.variant.internal_memory}}ROM:  
-                    {% if review.rating >= 3 %}
-                    <button type="button" class="btn btn-sm btn-success">
-                        {{ review.rating }} <span class="star-filled">★</span>
-                    </button>
-                    {% elif review.rating < 3 %}
-                    <button type="button" class="btn btn-sm btn-danger">
-                        {{ review.rating }} <span class="star-filled">★</span>
-                    </button>
-                    {% else %}
-                    <button type="button" class="btn btn-sm btn-secondary">
-                        {{ review.rating }} <span class="star-filled">★</span>
-                    </button>
+            <div class="col-12">
+                {% for review in user_rview %}
+                    {% if review.status %}
+                        <a href="{% url 'product_details' product_id=review.variant.product.first.id %}" class="card-link" style="text-decoration: none;">
+                            <div class="card mb-3 {% if review.rating == 1 or review.rating == 2 %} border-danger {% else %} border-success {% endif %}">
+                                <div class="card-header">
+                                    {{ review.variant.product.first.product_name }} with {{ review.variant.ram }} RAM & {{ review.variant.internal_memory }} ROM:  
+                                    {% if review.rating >= 3 %}
+                                        <button type="button" class="btn btn-sm btn-success">
+                                            {{ review.rating }} <span class="star-filled">★</span>
+                                        </button>
+                                    {% elif review.rating < 3 %}
+                                        <button type="button" class="btn btn-sm btn-danger">
+                                            {{ review.rating }} <span class="star-filled">★</span>
+                                        </button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-secondary">
+                                            {{ review.rating }} <span class="star-filled">★</span>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text"> {{ review.comment }}</p>
+                                    <p class="card-text"> {{ review.review }}</p>
+                                    <a href="{% url 'edit_review' review_id=review.id %}" class="btn btn-sm btn-outline-warning">
+                                        <span class="material-symbols-outlined">edit</span>
+                                    </a> 
+                                    <!-- Delete Review Link -->
+                                    <a href="{% url 'delete_review' review_id=review.id %}" class="btn btn-sm btn-outline-danger">
+                                        <span class="material-symbols-outlined">delete</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </a>
                     {% endif %}
-                </div>
-                <div class="card-body">
-                    <p class="card-text"> {{ review.comment }}</p>
-                    <p class="card-text"> {{ review.review }}</p>
-                    <a href="{% url 'edit_review' review_id=review.id %}" class="btn btn-sm btn-outline-warning"><span class="material-symbols-outlined">
-                        edit
-                        </span></a> 
-                        
-                        <!-- Delete Review Link -->
-                        <a href="{% url 'delete_review' review_id=review.id %}" class="btn btn-sm btn-outline-danger"><span class="material-symbols-outlined">
-                            delete
-                            </span></a>
-                </div>
-            </div>{% endif %}
-            {% endfor %}
-
-        </div>
+                {% endfor %}
+            </div>
+            
     </div>
 </div>
 

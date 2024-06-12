@@ -28,4 +28,7 @@ class CartItem(models.Model):
         return self.variant.final_price * self. added_quantity
 
     def __str__(self):
-        return f"item {self.product.product_name}, RAM-{self.variant.ram}, ROM-{self.variant.internal_memory}, quantity-{self.added_quantity}"
+        return f'''item {self.product.product_name},
+        RAM-{self.variant.ram},
+        ROM-{self.variant.internal_memory},
+        quantity-{self.added_quantity}'''

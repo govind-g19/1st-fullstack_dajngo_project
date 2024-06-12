@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 import uuid
 from django.utils import timezone
-from adminmanager.models import Category
+from adminmanager.models import Category, Product, Variant
 from decimal import Decimal
 # Create your models here.
 
@@ -36,10 +36,9 @@ class Coupons(models.Model):
     discount = models.IntegerField(default=0)
     valid_from = models.DateTimeField()
     valid_to = models.DateTimeField()
-    brand = models.ForeignKey(Category, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.brand.category_name} code-{self.coupon_code}"
+        return f"code-{self.coupon_code}"
 
     def is_valid(self):
         now = timezone.now()
@@ -48,6 +47,9 @@ class Coupons(models.Model):
     def is_expired(self):
         now = timezone.now()
         return now > self.valid_to
+
+    def is_valid_discount(self):
+        return self.discount > self.minimum_amount
 
 
 class UserCoupons(models.Model):
@@ -85,4 +87,21 @@ class Transaction(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.transaction_type} of {self.amount} to {self.wallet.user.username}'s wallet on {self.timestamp}"
+        return f'''{self.transaction_type} of
+        {self.amount} to
+        {self.wallet.user.username}'s wallet on
+        {self.timestamp}'''
+
+
+class WishList(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('product', 'variant', 'user')
+
+    def __str__(self):
+        return f''' {self.user.username}-{self.product.product_name}
+        ram{self.variant.ram} and rom{self.variant.internal_memory}'''

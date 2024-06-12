@@ -63,11 +63,34 @@
                     
                     <nav >
                         <ul class="menu-aside">
-                            <li class="menu-item ">
-                                <a class=" menu-link" href="{% url 'dashboard' %}"> <i class="icon material-icons md-home"></i>
+                            <li class="menu-item has-submenu">
+                                <a class="menu-link" href="{% url 'dashboard' %}"> <i class="icon material-icons md-shopping_bag"></i>
                                     <span class="text">Dashboard</span>
                                 </a>
+                                <div class="submenu "style="color: #000;">
+                                    <a href="{% url 'dashboard' %}" class=" text-dark ">Dashboard</a>
+                                    <a href="{% url 'sales_report' %}" class=" text-dark ">Sales Report</a>
+                                        {% comment %} {% url 'add_varients' %} {% endcomment %}
+                                </div>
                             </li>
+                            <li class="menu-item has-submenu">
+                                <a class="menu-link" href="{% url 'product_list' %}"> <i class="icon material-icons md-shopping_bag"></i>
+                                    <span class="text">Offers</span>
+                                </a>
+                                <div class="submenu "style="color: #000;">
+                            
+                                    <a href="{% url 'add_product_offer' %}" class=" text-dark ">Add Products Offers</a>
+                                    <a href="{% url 'product_offers_list' %}" class=" text-dark ">view Product offers</a>
+                                        {% comment %} {% url 'add_varients' %} {% endcomment %}
+                                </div>
+                            </li>
+                            {% comment %} Category    {% endcomment %}
+                                <li class="menu-item">
+                                    <a class="menu-link" href="{% url 'category' %}"> <i class="icon material-icons md-add_box"></i>
+                                        <span class="text">Category</span>
+                                    </a>
+
+                                </li>
 
                             {% comment %} product {% endcomment %}
                             <li class="menu-item has-submenu">
@@ -82,16 +105,6 @@
                                 </div>
                             </li>
 
-
-
-
-                                     {% comment %} Category    {% endcomment %}
-                            <li class="menu-item">
-                                <a class="menu-link" href="{% url 'category' %}"> <i class="icon material-icons md-add_box"></i>
-                                    <span class="text">Category</span>
-                                </a>
- 
-                            </li>
                                 {% comment %} Users  {% endcomment %}
                             <li class="menu-item">
                                 <a class="menu-link" href="{% url 'admin-user' %}"> <i class="icon material-icons md-person"></i>
@@ -153,21 +166,9 @@
                                 </button>
 
                                 <header class="main-header navbar text-dark gray-bg">
-                                    <div class="col-search">
-                                        <form class="searchform">
-                                            <div class="input-group">
-                                               
-                                                <input list="search_terms" type="text" class="form-control" placeholder="Search term">
-                                                <button class="btn btn-dark gray-bg bg-dark" type="button"> <i class="material-icons md-search"></i></button>
-                                            </div>
-                                            <datalist id="search_terms">
-                                                <option value="Products">
-                                                <option value="New orders">
-                                                <option value="Apple iphone">
-                                                <option value="Ahmed Hassan">
-                                            </datalist>
-                                        </form>
-                                    </div>
+                                    {% block search %}
+                                   
+                                    {% endblock search %}
 
                                 </header>
                             </div>

@@ -22,5 +22,17 @@ urlpatterns = [
     path('my_wallet', views.my_wallet, name='my_wallet'),
     path('withdraw_funds', views.withdraw_funds, name='withdraw_funds'),
     path('add_to_wallet', views.add_to_wallet, name='add_to_wallet'),
-
+    # wish list
+    path('add_to_wishlist/<int:product_id>/',
+         views.add_to_wishlist,
+         name='add_to_wishlist'),
+    path('view_wishlist', views.view_wishlist, name='view_wishlist'),
+    path('wishlist/add_to_cart/<int:wishlist_item_id>/',
+         views.add_to_cart_from_wishlist,
+         name='add_to_cart_from_wishlist'),
+    path('add_all_to_cart', views.add_all_to_cart, name='add_all_to_cart'),
+    path('remove_from_wishlist/<int:product_id>/',
+         views.remove_from_wishlist,
+         name='remove_from_wishlist'),
 ]
+

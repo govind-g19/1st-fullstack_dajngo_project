@@ -5,7 +5,18 @@
 {% block pageheader %}
 <h2 class="page-font">Home </h2>
 {% endblock pageheader %}
-
+{% block search %}
+<div class="col-search">
+    <form method="GET" action="{% url 'index' %}" class="searchform">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control form-control-lg gray-bg" placeholder="Search term" value="{{ search_query }}">
+            <button type="submit" class="btn btn-bg-dark-subtle">
+                <i class="material-icons md-search"></i>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock search %}
 {% block content %}
 {% load static %}
 

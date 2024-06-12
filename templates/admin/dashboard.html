@@ -1,27 +1,19 @@
 {% extends 'admin/admin-base.html' %}
 {% load static %}
 {% block pageheader %}
-<h1>Welcome {{ admin_name }}!   </h1>
-{% endblock pageheader %}</a>
+<h1>Overall sales</h1>
+{% endblock pageheader %}
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
   <div class="row">
-    {% comment %} <div class="col-lg-12 mb-4 order-0">
-      <div class="card">
-        <div class="d-flex align-items-end row">
-          <div class="col-sm-7">
-            <div class="card-body">
-              <h1 class="card-title text-primary"> 🎉</h1>
-            </div>
+    <div class="col-8">
+      {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              <strong></strong> {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
-          <div class="col-sm-5 text-center text-sm-left">
-            <div class="card-body pb-0 px-0 px-md-4">
-              <img src="{% static 'adminapp/img/illustrations/man-with-laptop-light.png' %}" height="140" alt="View Badge User" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div> {% endcomment %}
+      {% endfor %}
+  </div>
     <div class="col-lg-8 d-flex align-items-stretch mt-5">
       <div class="card w-100">
         <div class="card-body">
@@ -77,6 +69,20 @@
         <div class="card-body p-4">
           <h5 class="card-title fw-semibold mb-4">Recent Transactions</h5>
           <div class="table-responsive">
+            <!-- Add form for filtering dates -->
+            <form method="get" id="dateFilterForm" class="mb-3">
+              <div class="row">
+                <div class="col-md-3">
+                  <input type="date" name="start_date" id="start_date" class="form-control" placeholder="Start Date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-3">
+                  <input type="date" name="end_date" id="end_date" class="form-control" placeholder="End Date" value="{{ end_date }}">
+                </div>
+                <div class="col-md-3">
+                  <button type="submit" class="btn btn-primary">Filter</button>
+                </div>
+              </div>
+            </form>
             <table class="table text-nowrap mb-0 align-middle">
               <thead class="text-dark fs-4">
                 <tr>
@@ -123,14 +129,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+  const dates = {{ dates|safe }};
+  const counts = {{ counts|safe }};
+
   const ctx = document.getElementById('myChart').getContext('2d');
   new Chart(ctx, {
     type: 'line',
     data: {
-      labels: {{ dates|safe }},
+      labels: dates,
       datasets: [{
         label: 'Daily Order Counts',
-        data: {{ counts|safe }},
+        data: counts,
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
         fill: false
@@ -146,3 +155,4 @@
   });
 </script>
 {% endblock %}
+

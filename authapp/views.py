@@ -8,31 +8,30 @@ from django.db.models import Q
 # active user
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.urls import NoReverseMatch, reverse
+# from django.urls import NoReverseMatch, reverse
 from django.template.loader import render_to_string
-from django.utils.encoding import force_bytes, force_str, DjangoUnicodeDecodeError
+from django.utils.encoding import force_bytes, force_str
+from django.utils.encoding import DjangoUnicodeDecodeError
 from .models import Address, Coupons, UserCoupons, Wallet, Transaction
+from .models import WishList
+from adminmanager.models import Product, Variant
 from decimal import Decimal
+from django.shortcuts import get_object_or_404
 # getting tokens
-from .utils import TokenGenerator, generate_token
-
-# to redirect to specifice page after login
-
-
+from .utils import generate_token
 # sending mails
 from django.conf import settings
 from django.core.mail import EmailMessage
-
 # for class based view
 from django.views.generic import View
-
 # password generator
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-
 # threding to reduce time
 import threading
 # for validation
 import re
+# cart
+from cartapp.models import Cart, CartItem
 
 
 class EmailThread(threading.Thread):
@@ -61,33 +60,51 @@ def signup(request):
 
         # Password length check
         if len(password) < 8:
-            messages.warning(request, "Password must be at least 8 characters long.")
+            messages.warning(request,
+                             "Password must be at least 8 characters long.")
             return render(request, "auth/signup.html")
 
         # Password complexity check
         if not re.search(r'[A-Z]', password):
-            messages.warning(request, "Password must contain at least one uppercase letter.")
+            messages.warning(request,
+                             '''Password must contain at least one uppercase 
+                             letter.''')
             return render(request, "auth/signup.html")
 
         if not re.search(r'[a-z]', password):
-            messages.warning(request, "Password must contain at least one lowercase letter.")
+            messages.warning(request,
+                             "Password must contain at least one lowercase.")
             return render(request, "auth/signup.html")
 
         if not re.search(r'[0-9]', password):
-            messages.warning(request, "Password must contain at least one digit.")
+            messages.warning(request,
+                             "Password must contain at least one digit.")
             return render(request, "auth/signup.html")
 
         if not re.search(r'[@$!%*?&]', password):
-            messages.warning(request, "Password must contain at least one special character (@, $, !, %, *, ?, &).")
+            messages.warning(request,
+                             '''Password must contain at
+                              least one special character
+                               (@, $, !, %, *, ?, &).''')
             return render(request, "auth/signup.html")
 
         # Username validation
         if len(uname) < 3 or len(uname) > 30:
-            messages.warning(request, "Username must be between 3 and 30 characters long.")
+            messages.warning(request, 
+                             "Username must be between 3 and 30 characters.")
             return render(request, "auth/signup.html")
 
         if not uname.isalnum():
-            messages.warning(request, "Username can only contain letters and numbers.")
+            messages.warning(request,
+                             "Username can only contain letters and numbers.")
+            return render(request, "auth/signup.html")
+        
+        if not first_name.isalpha():
+            messages.warning(request, "First name can only contain letters.")
+            return render(request, "auth/signup.html")
+        
+        if not last_name.isalpha():
+            messages.warning(request, "Last name can only contain letters.")
             return render(request, "auth/signup.html")
 
         # Check if username or email already exists in the database
@@ -162,7 +179,7 @@ class RequestRestEmailView(View):
         user = User.objects.filter(email=email)
 
         if user.exists():
-            current_site = get_current_site(request)
+            get_current_site(request)
             email_subject = "Rest our Password"
             message = render_to_string(
                 "auth/reset-user-password.html",
@@ -193,7 +210,7 @@ class SetNewPasswordView(View):
                     request, "Invalid link, Please try again after sometime "
                 )
                 return render(request, "auth/request-reset-email.html")
-        except DjangoUnicodeDecodeError as identifier:
+        except DjangoUnicodeDecodeError:
             pass
         return render(request, "auth/set-new-password.html", context)
 
@@ -282,7 +299,8 @@ def loogout(request):
 # user profile
 def view_profile(request):
     current_user = request.user
-    addresses = Address.objects.filter(user=current_user, is_primary=True).first()
+    addresses = Address.objects.filter(user=current_user,
+                                       is_primary=True).first()
     address_list = Address.objects.filter(user=current_user)
     coupons = Coupons.objects.all()
 
@@ -303,7 +321,8 @@ def view_profile(request):
 
 def edit_profile(request):
     current_user = request.user
-    address = Address.objects.filter(user=current_user, is_primary=True).first()
+    address = Address.objects.filter(user=current_user,
+                                     is_primary=True).first()
 
     if request.method == "POST":
         first_name = request.POST.get("first_name")
@@ -312,23 +331,50 @@ def edit_profile(request):
         email = request.POST.get("email")
         phone_number = request.POST.get("phone_number")
 
+        # Validate first name and second name fields
+        if not re.match("^[a-zA-Z]+$", first_name):
+            messages.error(request, "First name should contain only letters.")
+            return redirect("edit_profile")
+
+        if not re.match("^[a-zA-Z]+$", second_name):
+            messages.error(request, "Second name should contain only letters.")
+            return redirect("edit_profile")
+
+        # Validate username field
+        if not re.match("^[a-zA-Z0-9_]+$", username):
+            messages.error(request, '''Username should contain only letters,
+                           numbers, or underscores.''')
+            return redirect("edit_profile")
+
         # Check if username is already taken
-        if User.objects.filter(username=username).exclude(id=current_user.id).exists():
+        if User.objects.filter(username=username).exclude(
+                id=current_user.id).exists():
             messages.error(request, "Username already taken")
             print("to check username")
             return redirect('edit_profile')
 
         # Check if email is already in use
-        if User.objects.filter(email=email).exclude(user=request.user).exists():
+        if User.objects.filter(
+                email=email).exclude(id=current_user.id).exists():
             messages.error(request, 'This email is already in use')
             print("to check email")
             return redirect('edit_profile')
 
         # Check if phone number is already in use
-        if phone_number and address and address.phone_number == phone_number:
-            messages.error(request, "Phone number already in use")
-            print("to check phone")
+        if phone_number:
+            if not re.match("^\d{10}$", phone_number):
+                messages.error(request,
+                               "Please enter a valid 10-digit phone number.")
+                return redirect("edit_profile")
+
+            if Address.objects.filter(~Q(user=current_user),
+                                      phone_number=phone_number).exists():
+                messages.error(request, "Phone number already in use")
+                return redirect("edit_profile")
+        else:
+            messages.error(request, "Enter a valid Number")
             return redirect("edit_profile")
+
 
         # Update user's username and email
         current_user.username = username
@@ -343,6 +389,9 @@ def edit_profile(request):
             address.second_name = second_name
             print("save thr user address changes")
             address.save()
+        else:
+            messages.error(request, 'To complete the Profile fill the address')
+            return redirect('manage_address')
 
         messages.success(request, "Profile updated successfully.")
         print("redirect to view")
@@ -365,23 +414,28 @@ def change_password(request):
         user = authenticate(username=request.user.username, password=password)
 
         if len(password) < 8:
-            messages.warning(request, "Password must be at least 8 characters long.")
+            messages.warning(request,
+                             "Password must be at least 8 characters long.")
             return render(request, "auth/change_password.html")
         # Password complexity check
         if not re.search(r'[A-Z]', password):
-            messages.warning(request, "Password must contain at least one uppercase letter.")
+            messages.warning(request, '''Password must contain at 
+                             least one uppercase letter.''')
             return render(request, "auth/change_password.html")
 
         if not re.search(r'[a-z]', password):
-            messages.warning(request, "Password must contain at least one lowercase letter.")
+            messages.warning(request, '''Password must contain at 
+                             least one lowercase letter.''')
             return render(request, "auth/change_password.html")
 
         if not re.search(r'[0-9]', password):
-            messages.warning(request, "Password must contain at least one digit.")
+            messages.warning(request,
+                             "Password must contain at least one digit.")
             return render(request, "auth/change_password.html")
 
         if not re.search(r'[@$!%*?&]', password):
-            messages.warning(request, "Password must contain at least one special character (@, $, !, %, *, ?, &).")
+            messages.warning(request, '''Password must contain at least one
+                              special character (@, $, !, %, *, ?, &).''')
             return render(request, "auth/change_password.html")
 
         if user is not None:
@@ -420,7 +474,8 @@ def user_view_coupons(request):
 @login_required
 def manage_address(request):
     current_user = request.user
-    main_addresses = Address.objects.filter(user=current_user, is_primary=True).first()
+    main_addresses = Address.objects.filter(user=current_user,
+                                            is_primary=True).first()
     addresses = Address.objects.filter(user=current_user)
     context = {
         'addresses': addresses,
@@ -443,7 +498,8 @@ def my_wallet(request):
     except Wallet.DoesNotExist:
         wallet = Wallet.objects.create(user=request.user, balance=0)
 
-    transactions = Transaction.objects.filter(wallet=wallet).order_by('timestamp')
+    transactions = Transaction.objects.filter(
+        wallet=wallet).order_by('timestamp')
 
     context = {
         'my_wallet': wallet,
@@ -511,3 +567,135 @@ def withdraw_funds(request):
             messages.error(request, 'Wallet not found')
             return redirect('my_wallet')
     return redirect('my_wallet')
+
+
+# wishlist
+@login_required
+def add_to_wishlist(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    variant_id = request.GET.get('variant_id')
+    if variant_id:
+        try:
+            variant_id = int(variant_id)
+            variant = get_object_or_404(Variant, id=variant_id)
+            wishlist_item, created = WishList.objects.get_or_create(
+                user=request.user, product=product, variant=variant)
+            if created:
+                messages.success(request, 'Product added to wishlist.')
+            else:
+                messages.info(request, 'Product already in wishlist.')
+        except ValueError:
+            messages.error(request, 'Invalid variant ID.')
+    else:
+        messages.error(request, 'Variant ID not provided.')
+    return redirect('view_wishlist')
+
+
+@login_required
+def view_wishlist(request):
+    wishlist_items = WishList.objects.filter(user=request.user)
+    context = {
+        'wishlist_items': wishlist_items
+    }
+    return render(request, 'auth/view_wishlist.html', context)
+
+
+@login_required
+def add_to_cart_from_wishlist(request, wishlist_item_id):
+    current_user = request.user
+    wishlist_item = get_object_or_404(WishList,
+                                      id=wishlist_item_id,
+                                      user=current_user)
+    product = wishlist_item.product
+    variant = wishlist_item.variant
+
+    if variant.is_available and product.available and variant.quantity > 0:
+        cart, created = Cart.objects.get_or_create(user=current_user)
+        cart_item, item_created = CartItem.objects.get_or_create(
+            user=current_user,
+            product=product,
+            variant=variant,
+            cart=cart,
+            defaults={"added_quantity": 1},
+        )
+
+        if not item_created:
+            if cart_item.added_quantity < variant.quantity:
+                cart_item.added_quantity += 1
+                cart_item.save()
+                # Remove the item from the wishlist after adding to the cart
+                wishlist_item.delete()
+                messages.success(request,
+                                 '''Product added to cart and
+                                   removed from wishlist''')
+                return redirect("cart")
+            else:
+                messages.warning(request, "Quantity exceeds available stock")
+                return redirect("wishlist")
+        else:
+            # Remove the item from the wishlist after adding to the cart
+            wishlist_item.delete()
+            messages.success(request,
+                             '''Product added to cart
+                              and removed from wishlist''')
+            return redirect("cart")
+    else:
+        if not variant.is_available or variant.quantity <= 0:
+            messages.error(request, "Selected variant is not available.")
+        if not product.is_available:
+            messages.error(request, "Product is not available.")
+        return redirect("wishlist")
+
+
+@login_required
+def add_all_to_cart(request):
+    current_user = request.user
+    wishlist_items = WishList.objects.filter(user=current_user)
+
+    if wishlist_items:
+        cart, created = Cart.objects.get_or_create(user=current_user)
+
+        for wishlist_item in wishlist_items:
+            product = wishlist_item.product
+            variant = wishlist_item.variant
+
+            if variant and variant.is_available and product.available and variant.quantity > 0:
+                cart_item, item_created = CartItem.objects.get_or_create(
+                    user=current_user,
+                    product=product,
+                    variant=variant,
+                    cart=cart,
+                    defaults={"added_quantity": 1},
+                )
+
+                if not item_created:
+                    if cart_item.added_quantity < variant.quantity:
+                        cart_item.added_quantity += 1
+                        cart_item.save()
+                    else:
+                        messages.warning(request, f"Quantity for {product.product_name} exceeds available stock")
+                        continue
+
+                # Remove the item from the wishlist after adding to the cart
+                wishlist_item.delete()
+
+        messages.success(request, "All available items added to cart")
+    else:
+        messages.warning(request, "No items in your wishlist")
+
+    return redirect("cart")
+
+
+def remove_from_wishlist(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    variant_id = request.GET.get('variant_id')
+    variant = get_object_or_404(Variant, id=variant_id)
+
+    wishlist_item = get_object_or_404(WishList, user=request.user,
+                                      product=product,
+                                      variant=variant)
+
+    wishlist_item.delete()
+    messages.success(request, "Item removed from wishlist.")
+
+    return redirect('view_wishlist')

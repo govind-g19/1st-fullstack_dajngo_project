@@ -13,7 +13,7 @@ urlpatterns = [
     path('admin-index',
          views.admin_index,
          name='admin-index'),
-
+    # users 
     path('admin-user',
          views.admin_user_list,
          name='admin-user'),
@@ -25,6 +25,13 @@ urlpatterns = [
     path('unblock_user/<int:id>/',
          views.unblock_user,
          name='unblock_user'),
+
+    path('promote_user/<int:id>/',
+         views.promote_user,
+         name='promote_user'),
+    path('depromote_user/<int:id>/',
+         views.depromote_user,
+         name='depromote_user'),
 
     path('add_category',
          views.add_category,
@@ -99,7 +106,6 @@ urlpatterns = [
 
     path('admin_unblock_review/<int:review_id>/', views.admin_unblock_review,
          name='admin_unblock_review'),
-#     path('product-sale/', views.product_sale_page, name='product_sale_page'),
 
     path('admin_order_view/',
          views.admin_order_view,
@@ -107,8 +113,26 @@ urlpatterns = [
     path('admin_delete_order/<int:orderid>/',
          views.admin_delete_order,
          name='admin_delete_order'),
+    path('update_order_status/<int:order_id>/', views.update_order_status,
+         name='update_order_status'),
+    path('detail_order/<int:orderid>/',
+         views.detail_order,
+         name='detail_order'),
     path('dashboard',
          views.dashboard,
          name='dashboard'),
+    path('sales_report/', views.sales_report, name='sales_report'),
+    # To add product offers
+    path('add_product_offer', views.add_product_offer,
+         name='add_product_offer'),
+    path('product_offers_list', views.product_offers_list,
+         name='product_offers_list'),
+    path('edit_product_offer/<int:offer_id>/', views.edit_product_offer,
+         name='edit_product_offer'),
+    path('delete_product_offer/<int:offer_id>/', views.delete_product_offer,
+         name='delete_product_offer'),
+    path('undo_delete_product_offer/<int:offer_id>/',
+         views.undo_delete_product_offer, name='undo_delete_product_offer')
+
 
 ]

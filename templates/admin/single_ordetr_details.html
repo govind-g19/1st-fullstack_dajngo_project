@@ -1,0 +1,48 @@
+{% extends "admin/admin-base.html" %}
+
+{% block title %} Order Report {% endblock title %}
+
+{% block pageheader %}
+<h2 class="page-font">Detail Report on {{order.order_id}} </h2>
+{% endblock pageheader %}
+
+{% block content %}
+{% load static %}
+<div class="container">
+    <div class="row">
+        <div class="col-8">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <strong></strong> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="col-12">
+            <div class="card">
+                    <div class="card-body">
+                    <p class="card-text"><strong>Username:</strong> {{order.user.username|upper}}</p>
+                    <p class="card-text"><strong>Customer Name:</strong> {{order.delivery_address.first_name}} {{order.delivery_address.second_name}}</p>
+                    <p class="card-text"><strong>Email:</strong> {{order.user.email}}</p>
+                    <p class="card-text"><strong>Phone number:</strong> {{ order.delivery_address.phone_number}}</p>
+                    <p class="card-text"><strong>Date of order: </strong>{{order.order_date|date:"d-m-Y H:i" }}</p>
+                <p><strong>Address</strong> {{ order.delivery_address.house_address }}, {{ order.delivery_address.city }} in {{ order.delivery_address.state }}</p>
+                <h5><strong>Product Items </strong></h5>
+                <p class="card-text"><strong>Number of items</strong>{{order_items.count}}</p>
+                {% for order_item in order_items %}
+                <p class="card-text"><strong>Item: </strong>{{ order_item.product.product_name }} with{{ order_item.variant }} </p>
+                <p class="card-text"><strong>Price: </strong>₹{{ order_item.price }}</p>
+                <p class="card-text"><strong>Quantity: </strong>{{ order_item.quantity }}</p>
+                <p class="card-text"><strong>Total: </strong>₹{{ order.grand_total }}</p>
+                <p class="card-text"><strong>Payment Method: </strong>{{ order.payment_method }}</p>
+                <p class="card-text"><strong>Status: </strong>{{ order.status }}</p>
+                <a href="{% url 'download_invoice' order.id %}">Download</a>
+                {% endfor %}
+                </div>
+                </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

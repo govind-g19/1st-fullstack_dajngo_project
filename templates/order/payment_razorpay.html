@@ -13,6 +13,7 @@
                 <h6 class="card-title">Confirm the order amount and phone number before making the payment</h6><br>
                 <form id="payment-form">
                     {% csrf_token %}
+                    <input type="hidden" id="orderid" value="{{ order.id }}">
                     <div class="row mb-3">
                         <label for="phoneNumber" class="col-sm-2 col-form-label">Phone Number</label>
                         <div class="col-sm-10">
@@ -53,8 +54,23 @@ var options = {
 
 var rzp1 = new Razorpay(options);
 document.getElementById('pay-btn').addEventListener('click', function (e) {
-    rzp1.open();
     e.preventDefault();
+    $.ajax({
+        url: '{% url "check_order_status" order.id %}',
+        method: 'GET',
+        success: function(response) {
+            if (response.status === 'success') {
+                rzp1.open();
+            } else {
+                alert(response.message);
+                window.location.href = '{% url "shop" %}';
+            }
+        },
+        error: function() {
+            alert('Error checking order status');
+            window.location.href = '{% url "shop" %}';
+        }
+    });
 });
 </script>
 

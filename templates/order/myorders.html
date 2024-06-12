@@ -7,15 +7,28 @@
 {% block content %}
 <div class="container">
     <div class="row">
+        <div class="col-8">
+            {% for message in messages %}
+            <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
+                <strong></strong> {{message}}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
         {% for order in orders %}
         <div class="card mb-5">
             <div class="card-body invoice-container p-3 m-2"> <!-- Move invoice-container class here -->
                 <div class="mb-3">
                     <div class=' d-flex justify-content-between'>
                         <p class="card-text fw-medium">Order ID: {{ order.order_id }}</p>
+                        {% if order.status == 'Cancelled' or order.status == 'Returned' %}
+                        <span class="text-danger">{{order.status}}<span>
+                        {% else %}
                         <a href="{% url 'delete_myorder' orderid=order.id %}"><span class="material-symbols-outlined">
                         close
                         </span></a>
+                        {% endif %}
+
                     </div>
                     <p class="card-text fw-medium">Date of order: {{ order.order_date }} </p>
                 </div>
@@ -70,14 +83,15 @@
                       </tr>
                       {% endfor %}
                   </tbody>
+                  <td><a href="{% url 'download_invoice' order.id %}">Download</a></td>
+                  {% if order.status == 'Delivered' %}
+                  <td><a  class='btn btn-danger' href="{% url 'return_orders' order.id %}">Return</a></td>
+                  {% elif order.status == 'Returned' %}
+                  <td><a  class='btn btn-danger disabled' href="{% url 'return_orders' order.id %}">Returned</a></td>
+
+                  {% endif %}
                   
                   </table>
-                <div class="mt-3 justify-content-between">
-                    <p>Grand Total: {{ order.grand_total }}</p>
-                     <!-- Use class instead of id -->
-            <button class="btn btn-primary pdfButton">Download PDF</button>
-
-                </div>
             </div>
         </div>
         {% endfor %}
