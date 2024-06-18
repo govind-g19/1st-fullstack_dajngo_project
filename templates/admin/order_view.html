@@ -60,7 +60,7 @@
                 </td>
             </a>
                 <td>
-                    {% if order.status != 'Cancelled' %}
+                    {% if order.status != 'Cancelled' and order.status != 'Delivered' and order.status != 'Returned' %}
                     <a href="#" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal{{ order.id }}">Update</a>
                     {% else %}
                     <a href="#" class="btn btn-warning btn-sm disabled" data-bs-toggle="modal" data-bs-target="#exampleModal{{ order.id }}">Update</a>
@@ -98,11 +98,38 @@
                     
                 </td>
                 <td>
-                    {% if not order.status == "Cancelled" %}
-                        <a href="{% url 'admin_delete_order' order.id %}" class="btn btn-danger btn-sm">Cancel</a>
+                     {% if  order.status != "Cancelled" and order.status != 'Delivered' and order.status != 'Returned' %}
+                     <!-- Button trigger modal -->
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+                   Cancelled
+                    </button>
+
+                    <!-- Modal -->
+                    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="staticBackdropLabel">Confrom cancel</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            Once canclled it can't be undone
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <a href="{% url 'admin_delete_order' order.id %}" class="btn btn-danger btn-sm">Cancel</a>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
                     {% else %}
                         <a class="btn btn-danger disabled" role="button" aria-disabled="true">Cancelled</a>
                     {% endif %}
+                    {% comment %} {% if  order.status != "Cancelled" and order.status != 'Delivered' and order.status != 'Returned' %}
+                        <a href="{% url 'admin_delete_order' order.id %}" class="btn btn-danger btn-sm">Cancel</a>
+                    {% else %}
+                        <a class="btn btn-danger disabled" role="button" aria-disabled="true">Cancelled</a>
+                    {% endif %} {% endcomment %}
                 </td>
                 
             </tr>

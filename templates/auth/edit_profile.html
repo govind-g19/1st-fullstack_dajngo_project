@@ -38,7 +38,7 @@
                         </div>
                         <div class="col-12">
                             <label for="inputAddress2" class="form-label">Email ID</label>
-                            <input type="email" class="form-control" name="email" value="{{ current_user.email }}">
+                            <input type="email" class="form-control" name="email" value="{{ current_user.email }}" readonly>
                         </div>
                         <div class="col-md-6">
                             <label for="inputCity" class="form-label">Phone number</label>
@@ -46,6 +46,7 @@
                         </div>
                         <div class="col-12">
                             <button type="submit" class="btn btn-outline-secondary">Update</button>
+
                         </div>
                     </form>
                 </div>

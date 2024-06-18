@@ -3,7 +3,7 @@
 {% block title %} Shop {% endblock title %}
 
 {% block pageheader %}
-    <h2 class="page-font">Shop</h2>
+<h2 class="page-font">Shop</h2>
 {% endblock pageheader %}
 
 {% block search %}
@@ -20,87 +20,119 @@
 {% endblock search %}
 
 {% block content %}
-    {% load static %}
-    <div class="container">
-        <div class="row">
-            <div class="col-md-12 mb-3 d-flex justify-content-between">
-                <form method="GET" class="d-flex align-items-end">
-                    <div class="me-1">
-                        <select name="category_id" class="form-select" style="font-size: 0.875rem;">
-                            <option value="">All Categories</option>
-                            {% for categorie in categories %}
-                                <option value="{{ categorie.id }}" {% if categorie.id == category_id %} selected {% endif %}>{{ categorie.category_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div> 
-                    <div class="me-1">
-                        <select name="ram" class="form-select" style="font-size: 0.875rem;">
-                            <option value="">All RAM</option>
-                            <option value="4GB" {% if ram == '4GB' %} selected {% endif %}>4GB</option>
-                            <option value="8GB" {% if ram == '8GB' %} selected {% endif %}>8GB</option>
-                            <option value="16GB" {% if ram == '16GB' %} selected {% endif %}>16GB</option>
-                        </select>
-                    </div>
-                    <div class="me-1">
-                        <select name="rom" class="form-select" style="font-size: 0.875rem;">
-                            <option value="">All ROM</option>
-                            <option value="64GB" {% if rom == '64GB' %} selected {% endif %}>64GB</option>
-                            <option value="128GB" {% if rom == '128GB' %} selected {% endif %}>128GB</option>
-                            <option value="256GB" {% if rom == '256GB' %} selected {% endif %}>256GB</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-dark" style="padding: 0.65rem .35rem; font-size: 0.975rem;">Filter</button>
-                </form>
+{% load static %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12 mb-3 d-flex justify-content-between">
+            <form method="GET" class="d-flex align-items-end">
+                <div class="me-1">
+                    <select name="category_id" class="form-select" style="font-size: 0.875rem;">
+                        <option value="">All Categories</option>
+                        {% for categorie in categories %}
+                            <option value="{{ categorie.id }}" {% if categorie.id == category_id %} selected {% endif %}>{{ categorie.category_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="me-1">
+                    <select name="ram" class="form-select" style="font-size: 0.875rem;">
+                        <option value="">All RAM</option>
+                        <option value="4GB" {% if ram == '4GB' %} selected {% endif %}>4GB</option>
+                        <option value="8GB" {% if ram == '8GB' %} selected {% endif %}>8GB</option>
+                        <option value="16GB" {% if ram == '16GB' %} selected {% endif %}>16GB</option>
+                    </select>
+                </div>
+                <div class="me-1">
+                    <select name="rom" class="form-select" style="font-size: 0.875rem;">
+                        <option value="">All ROM</option>
+                        <option value="64GB" {% if rom == '64GB' %} selected {% endif %}>64GB</option>
+                        <option value="128GB" {% if rom == '128GB' %} selected {% endif %}>128GB</option>
+                        <option value="256GB" {% if rom == '256GB' %} selected {% endif %}>256GB</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-dark" style="padding: 0.65rem .35rem; font-size: 0.975rem;">Filter</button>
+            </form>
 
-                <form method="GET" class="d-flex align-items-end">
-                    <div class="me-1">
-                        <select name="sort_by" class="form-select" style="font-size: 0.875rem; ">
-                            <option value="">Sort By</option>
-                            <option value="name_asc" {% if sort_by == 'name_asc' %} selected {% endif %}>Name (A-Z)</option>
-                            <option value="name_desc" {% if sort_by == 'name_desc' %} selected {% endif %}>Name (Z-A)</option>
-                            <option value="price_asc" {% if sort_by == 'price_asc' %} selected {% endif %}>Price (Low to High)</option>
-                            <option value="price_desc" {% if sort_by == 'price_desc' %} selected {% endif %}>Price (High to Low)</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-dark"style="padding: 0.65rem .35rem; font-size: 0.975rem;">Apply</button>
-                </form>
-            </div>
-            <div class="col-md-12">
-                {% for message in messages %}
-                    <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
-                        <strong></strong> {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            </div>
+            <form method="GET" class="d-flex align-items-end">
+                <div class="me-1">
+                    <select name="sort_by" class="form-select" style="font-size: 0.875rem;">
+                        <option value="">Sort By</option>
+                        <option value="name_asc" {% if sort_by == 'name_asc' %} selected {% endif %}>Name (A-Z)</option>
+                        <option value="name_desc" {% if sort_by == 'name_desc' %} selected {% endif %}>Name (Z-A)</option>
+                        <option value="price_asc" {% if sort_by == 'price_asc' %} selected {% endif %}>Price (Low to High)</option>
+                        <option value="price_desc" {% if sort_by == 'price_desc' %} selected {% endif %}>Price (High to Low)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-dark" style="padding: 0.65rem .35rem; font-size: 0.975rem;">Apply</button>
+            </form>
         </div>
-
-        <div class="row">
-            {% for variant in variants %}
-                {% if variant.is_available %}
-                    <div class="col-md-4 mb-3 featured-icons">
-                        <div class="card rounded-4 p-2" style="width: 14rem;">
-                            <div style="background-color: white; display: flex; align-items: center; justify-content: center; height: 12rem;">
-                                {% for product in variant.product.all %}
-                                    <img src="{{ product.product_images.url }}"  class="card-img-top" style="width: 8rem; height: auto;" alt="...">
-                                {% endfor %}
-                            </div>
-                            <hr>
-                            <div class="card-body">
-                                {% for product in variant.product.all %}
-                                    <h5 class="card-title">{{ product.product_name }}</h5>
-                                {% endfor %}
-                                <h6 class="card-text">RAM: {{ variant.ram }}</h6>
-                                <h6 class="card-text">Internal Memory: {{ variant.internal_memory }}</h6>
-                                <h6 class="card-text">Final Price: Rs.{{ variant.final_price }}</h6>
-                                {% for product in variant.product.all %}
-                                    <a href="{% url 'product_details' product.id %}?variant_id={{ variant.id }}" class="btn btn-outline-secondary rounded-4">View more</a>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
+        <div class="variant-count">
+            ({{ variants.paginator.count }} Available)
+        </div>
+        <div class="col-md-12">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <strong></strong> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             {% endfor %}
         </div>
     </div>
+
+    <div class="row">
+        {% for variant in variants %}
+            {% if variant.is_available %}
+                <div class="col-md-4 mb-3 featured-icons">
+                    <div class="card rounded-4 p-2" style="width: 14rem;">
+                        <div style="background-color: white; display: flex; align-items: center; justify-content: center; height: 12rem;">
+                            <img src="{{ variant.product.product_images.url }}" class="card-img-top" style="width: 8rem; height: auto;" alt="...">
+                        </div>
+                        <hr>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ variant.product.product_name }}</h5>
+                            <h6 class="card-text">RAM: {{ variant.ram }}</h6>
+                            <h6 class="card-text">Internal Memory: {{ variant.internal_memory }}</h6>
+                            {% if variant.product.product_offer or variant.product.category.category_offer%}
+
+                            <h6 class="card-text ">Price: Rs.<h6 class='text-decoration-line-through text-danger'>{{ variant.final_price }} </h6>
+                            <h6 class="card-text">Offer Price: Rs.{{ variant.offer_price }}</h6>
+
+                            {% else %}
+                            <h6 class="card-text">Final Price: Rs.{{ variant.final_price }}</h6>
+                            {% endif %}
+                            <a href="{% url 'product_details' variant.product.id %}?variant_id={{ variant.id }}" class="btn btn-outline-secondary rounded-4">View more</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <div class="col-12">
+            <nav aria-label="Page navigation example">
+                <ul class="pagination justify-content-center">
+                    {% if variants.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ variants.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in variants.paginator.page_range %}
+                        <li class="page-item {% if variants.number == page_num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                        </li>
+                    {% endfor %}
+                    
+                    {% if variants.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ variants.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
 {% endblock content %}

@@ -17,22 +17,24 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, Http404
 from django.utils.timezone import now
 # Create your views here.
-import reportlab
+from django.conf import settings
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import HttpResponse, Http404
+from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus.doctemplate import PageTemplate, Frame
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.lib.styles import ParagraphStyle
+from reportlab.graphics.shapes import Drawing, Line
+import os
 
 
 @login_required
 def myorders(request):
     # Fetch orders for the logged-in user
-    orders = Orders.objects.filter(user=request.user)
-    print(reportlab.__version__)
-
+    orders = Orders.objects.filter(user=request.user).order_by('-order_date')
     # Fetch order items related to the fetched orders
     order_items = OrderItem.objects.filter(order__in=orders)
 
@@ -43,6 +45,7 @@ def myorders(request):
         'orders': orders,
         'order_items': order_items,
         'payments': payments,
+
     }
 
     return render(request, 'order/myorders.html', context)
@@ -65,7 +68,7 @@ def return_orders(request, orderid):
                 variant.quantity += item.quantity
                 variant.save()
 
-            if order.payment_method != 'COD':
+            if order.payment_method:
                 wallet, created = Wallet.objects.get_or_create(
                     user=request.user)
                 wallet.balance += Decimal(order.grand_total)
@@ -97,13 +100,12 @@ def place_order(request):
         user = request.user
         try:
             subtotal = float(request.POST.get('subtotal'))
-            discount_given = float(request.POST.get('discount_given'))
             shipping = float(request.POST.get('shipping'))
             tax = float(request.POST.get('tax'))
             grand_total = float(request.POST.get('grand_total'))
             payment_method = request.POST.get("payment_method")
             cart_id = request.POST.get('cart_id')
-            address = Address.objects.filter(is_primary=True).first()
+            address = Address.objects.filter(user=user, is_primary=True).first()
 
             if not address:
                 messages.error(request, 'No primary address found.')
@@ -111,6 +113,15 @@ def place_order(request):
         except (TypeError, ValueError):
             messages.error(request, 'Invalid monetary value provided.')
             return redirect('check_out')
+
+        # Initialize coupon_discount
+        coupon_discount = 0
+
+        # Retrieve and delete coupon information from session
+        if "applied_coupon_code" in request.session:
+            del request.session["applied_coupon_code"]
+        if "applied_coupon_discount" in request.session:
+            coupon_discount = request.session.pop("applied_coupon_discount", 0)
 
         try:
             cart = Cart.objects.get(id=cart_id, user=user)
@@ -120,8 +131,7 @@ def place_order(request):
             for cart_item in cart_items:
                 variant = cart_item.variant
                 if variant.quantity < cart_item.added_quantity:
-                    messages.error(request, f'''{variant.product.name}
-                                    variant is out of stock.''')
+                    messages.error(request, f'{variant.product.name} variant is out of stock.')
                     return redirect('shop')
 
             # Prepare address data
@@ -136,6 +146,9 @@ def place_order(request):
                 "land_mark": address.land_mark
             }
 
+            # Calculate total discounts from product and category offers
+            total_offer_discount = 0
+
             # Create the order object
             order_id = uuid.uuid4().hex[:8].upper()
             order = Orders.objects.create(
@@ -143,7 +156,8 @@ def place_order(request):
                 order_id=order_id,
                 delivery_address=address_data,
                 order_total=subtotal,
-                discount_given=discount_given,
+                coupon_discount=coupon_discount,
+                offer_discount=0,
                 shipping=shipping,
                 tax=tax,
                 grand_total=grand_total,
@@ -155,9 +169,19 @@ def place_order(request):
             # Update inventory and create order items
             for cart_item in cart_items:
                 variant = cart_item.variant
+
+                # Calculate offers
+                offer_price, combined_discount, product_offer, category_offer = offer_calculation(variant_id=variant.id, current_time=timezone.now())
+
+                # Update variant quantity
                 variant.quantity -= cart_item.added_quantity
                 variant.save()
 
+                # Calculate discounts
+                item_total_discount = (cart_item.variant.final_price - offer_price) * cart_item.added_quantity
+                total_offer_discount += item_total_discount
+
+                # Create OrderItem and assign values properly
                 OrderItem.objects.create(
                     order=order,
                     product=cart_item.product,
@@ -165,8 +189,16 @@ def place_order(request):
                     quantity=cart_item.added_quantity,
                     ram=cart_item.variant.ram,
                     memmory=cart_item.variant.internal_memory,
-                    price=cart_item.variant.final_price
+                    price=cart_item.variant.final_price,
+                    offer_price=offer_price,
+                    product_discount=product_offer if product_offer else 0,
+                    category_discount=category_offer if category_offer else 0
                 )
+
+            # Update the order with the total offer discount
+            order.offer_discount = total_offer_discount
+            order.grand_total = subtotal + shipping + tax - total_offer_discount - coupon_discount
+            order.save()
 
             # Delete the cart after order is created
             cart.delete()
@@ -194,6 +226,37 @@ def place_order(request):
     return redirect('check_out')
 
 
+def offer_calculation(variant_id, current_time):
+    variant = get_object_or_404(Variant, id=variant_id)
+    combined_discount = 0
+    offer_price = None
+    product_offer = 0
+    category_offer = 0
+    final_price = variant.final_price
+
+    if (final_price and
+            variant.product.product_offer and
+            variant.product.product_offer.active and
+            variant.product.product_offer.valid_from <= current_time <= variant.product.product_offer.valid_to):
+
+        product_offer = variant.product.product_offer.discount
+        combined_discount += product_offer
+
+    if (final_price and
+            variant.product.category.category_offer and
+            variant.product.category.category_offer.active and
+            variant.product.category.category_offer.valid_from <= current_time <= variant.product.category.category_offer.valid_to):
+        category_offer = variant.product.category.category_offer.discount
+        combined_discount += category_offer
+
+    if combined_discount > 0:
+        offer_price = final_price - (final_price * combined_discount / 100)
+    else:
+        offer_price = final_price
+
+    return offer_price, combined_discount, product_offer, category_offer
+
+
 @login_required
 def order_page(request, orderid):
     order = Orders.objects.get(id=orderid)
@@ -207,7 +270,7 @@ def order_page(request, orderid):
     elif order.payment_method == 'wallet' and order.status == "OrderPending":
         return redirect("payment_wallet", orderid=order.id)
 
-    payment = Payment.objects.filter(order=order)
+    payment = Payment.objects.get(order=order)
 
     context = {
         'order': order,
@@ -453,7 +516,7 @@ def incompleteorder(request):
     incomplete_orders = Orders.objects.filter(
         user=request.user,
         status__in=['orderfailed', 'OrderPending']
-    ).prefetch_related('orderitem_set')
+    ).prefetch_related('orderitem_set').order_by('-order_date')
 
     context = {
         'incomplete_orders': incomplete_orders,
@@ -475,27 +538,26 @@ def delete_myorder(request, orderid):
             variant.quantity += item.quantity
             variant.save()
 
-        if order.payment_method != 'COD':
+        if order.status in ['Delivered', 'Cancelled']:
+            messages.error(request, 'The order cannot be cancelled')
+        else:
             wallet, created = Wallet.objects.get_or_create(user=request.user)
             wallet.balance += Decimal(order.grand_total)
             wallet.save()
-
             Transaction.objects.create(wallet=wallet,
-                                       transaction_type='credit',
-                                       amount=Decimal(order.grand_total))
-
-        messages.success(request, 'Order successfully cancelled')
-        return redirect('myorders')
+                                        transaction_type='credit',
+                                        amount=Decimal(order.grand_total))
+            messages.success(request, 'Order successfully cancelled')
+            
 
     except Orders.DoesNotExist:
         messages.error(request, 'Order not found.')
-        return redirect('myorders')
     except Variant.DoesNotExist:
         messages.error(request, 'Variant not found.')
-        return redirect('myorders')
     except Exception as e:
         messages.error(request, f"An error occurred: {str(e)}")
-        return redirect('myorders')
+
+    return redirect('myorders')
 
 
 @login_required
@@ -527,16 +589,14 @@ def del_incomplete_order(request, orderid):
 
 # to download the invoice
 
+
 @login_required
 def download_invoice(request, order_id):
     try:
         order = get_object_or_404(Orders, id=order_id)
-        # if order.user != request.user or request.user.is_superuser:
-        #     messages.error(request, "You do not have permission to view this invoice.")
-        #     return redirect('myorders')
 
         if order.status in ["Cancelled", "orderfailed", "OrderPending"]:
-            messages.error(request, f"Yoou order is {order.status}, Can't download the invoice .")
+            messages.error(request, f"Your order is {order.status}, can't download the invoice.")
             return redirect('myorders')
 
         order_items = OrderItem.objects.filter(order=order)
@@ -547,35 +607,69 @@ def download_invoice(request, order_id):
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="invoice_{order.order_id}.pdf"'
 
-        doc = SimpleDocTemplate(response, pagesize=landscape(letter))
+        
+        # Define margins
+        left_margin = 1 * inch
+        right_margin = 0.5 * inch
+        top_margin = 0.5 * inch
+        bottom_margin = 0.5 * inch
+
+        doc = SimpleDocTemplate(response, pagesize=landscape(letter),
+                                leftMargin=left_margin, rightMargin=right_margin,
+                                topMargin=top_margin, bottomMargin=bottom_margin)
+
         elements = []
 
-        # Define custom styles
+        # Draw a colored border around the conten
+
+        # Define styles
         styles = getSampleStyleSheet()
         heading_style = styles['Heading1']
-        heading_style.alignment = 0
         normal_style = styles['Normal']
         company_name_style = ParagraphStyle(
             name='V kart',
-            parent=heading_style,  # Inherits from the existing heading_style
-            alignment=1,  # Center alignment
-            fontName='Helvetica-Bold',  # Specify the font name
-            fontSize=14,  # Specify the font size
-            textColor=colors.blue,  # Specify the text color
+            parent=heading_style,
+            alignment=1,
+            fontName='Helvetica-Bold',
+            fontSize=20,
+            textColor=colors.blue,
         )
-    
-        # Add elements to the PDF
-        elements.append(Paragraph("V Kart", company_name_style))
+        section_heading_style = ParagraphStyle(
+            name='SectionHeading',
+            parent=heading_style,
+            fontName='Helvetica-Bold',
+            fontSize=16,
+            textColor=colors.black,
+            spaceBefore=10,
+            spaceAfter=10,
+        )
+        sub_heading_style = ParagraphStyle(
+            name='SubHeading',
+            parent=heading_style,
+            fontName='Helvetica-Bold',
+            fontSize=14,
+            textColor=colors.darkblue,
+            spaceBefore=10,
+            spaceAfter=5,
+        )
 
+
+        # Add elements to the PDF
+        elements.append(Spacer(1, top_margin))  # Add space at the top
+        elements.append(Paragraph("V Kart", company_name_style))
         elements.append(Spacer(1, 0.2 * inch))
+
+        line_drawing = Drawing(0, 20)
+        line_drawing.add(Line(100, 0, 550, 0, strokeWidth=1, strokeColor=colors.black))
+        elements.append(line_drawing)
+        elements.append(Spacer(1, 0.1 * inch))
 
         user = order.user
         delivery_address = order.delivery_address
         elements.append(Paragraph("User Details", heading_style))
         elements.append(Paragraph(f"User Name: {user.username}", normal_style))
         elements.append(Paragraph(f"Email: {user.email}", normal_style))
-        elements.append(Paragraph(f"First Name: {user.first_name}", normal_style))
-        elements.append(Paragraph(f"Last Name: {user.last_name}", normal_style))
+        elements.append(Paragraph(f"Name Name:{delivery_address['first_name']} {delivery_address['second_name']}", normal_style))
         elements.append(Paragraph(f"Phone Number: {delivery_address['phone_number']}", normal_style))
         elements.append(Spacer(1, 0.2 * inch))
 
@@ -595,20 +689,61 @@ def download_invoice(request, order_id):
         elements.append(Paragraph(address, normal_style))
         elements.append(Spacer(1, 0.2 * inch))
 
+
+        elements.append(Paragraph("Order Summary", section_heading_style))
+        order_summary_data = [
+            ['Order ID:', order.order_id],
+            ['Order Status:', order.status],
+            ['Total:', f"Rs. {order.order_total:.2f}"],
+            ['Coupon Discount:', f"Rs. {order.coupon_discount:.2f}"],
+            ['Offer Discount:', f"Rs. {order.offer_discount:.2f}"],
+            ['Payment Method:', order.payment_method],
+            ['Order Date:', order.order_date.strftime('%Y-%m-%d %H:%M:%S')],
+            ['Last Update:', order.updated_at.strftime('%Y-%m-%d %H:%M:%S')],
+            ['Shipping Cost:', f"Rs. {order.shipping:.2f}"],
+            ['GST:', f"Rs. {order.tax:.2f}"],
+            ['Grand Total:', f"Rs. {order.grand_total:.2f}"]
+        ]
+
+        order_summary_table = Table(order_summary_data, colWidths=[150, 400])
+        order_summary_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 12),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+            ('TEXTCOLOR', (1, 0), (1, -1), colors.blue),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        elements.append(order_summary_table)
+        elements.append(Spacer(1, 0.5 * inch))
+
+        line_drawing = Drawing(0, 20)
+        line_drawing.add(Line(100, 0, 550, 0, strokeWidth=1, strokeColor=colors.black))
+        elements.append(line_drawing)
+        elements.append(Spacer(1, 0.5 * inch))
+
         elements.append(Paragraph("Order Items", heading_style))
-        elements.append(Spacer(1, 0.2 * inch))
+        elements.append(Spacer(1, 0.5 * inch))
 
         # Create table for order items
-        data = [['Product', 'Variant', 'Quantity', 'Price']]
+        data = [['Image','Product', 'Variant', 'Quantity', 'Product offer', 'Category Offer', 'Price', 'Offre Price']]
         for item in order_items:
+            product_image_path = os.path.join(settings.MEDIA_ROOT, item.product.product_images.name)
+            img = Image(product_image_path, width=50, height=50) if os.path.exists(product_image_path) else "Image not available"
             data.append([
+                img,
                 item.product.product_name,
                 f"{item.variant.ram} RAM, {item.variant.internal_memory}",
                 item.quantity,
-                item.price
+                item.product_discount,
+                item.category_discount,
+                item.price,
+                item.offer_price,
             ])
 
-        table = Table(data, colWidths=[200, 150, 50, 75])
+        table = Table(data, colWidths=[60, 200, 150, 50, 75])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -622,17 +757,14 @@ def download_invoice(request, order_id):
         elements.append(table)
         elements.append(Spacer(1, 0.5 * inch))
 
-        # Add grand total
-        elements.append(Paragraph(f"Order Status: {order.status}", normal_style))
-        elements.append(Paragraph(f"Order Date: {order.order_date.strftime('%Y-%m-%d %H:%M:%S')}", normal_style))
-        elements.append(Paragraph(f"Last Update: {order.updated_at.strftime('%Y-%m-%d %H:%M:%S')}", normal_style))
-        elements.append(Paragraph(f"Shipping Cost: {order.shipping}", normal_style))
-        elements.append(Paragraph(f"GST : {order.tax}", normal_style))
-        elements.append(Paragraph(f"Grand Total: {order.grand_total}", normal_style))
-        elements.append(Spacer(1, 0.2 * inch))
+        line_drawing = Drawing(0, 20)
+        line_drawing.add(Line(100, 0, 550, 0, strokeWidth=1, strokeColor=colors.black))
+        elements.append(line_drawing)
+        elements.append(Spacer(1, 0.5 * inch))
 
         doc.build(elements)
 
         return response
+
     except Exception as e:
         return HttpResponse(f"An error occurred while generating the invoice: {str(e)}", content_type="text/plain")

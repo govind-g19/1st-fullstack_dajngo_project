@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from adminmanager.models import Category, Product, ProductImage
-from adminmanager.models import Variant, ReviewRating
+from adminmanager.models import Variant, ReviewRating, ProductOffers
 from authapp.models import WishList
 from .models import UserQuery
 from django.contrib.auth.decorators import login_required
@@ -14,10 +14,13 @@ from django.urls import reverse
 # from django.db.models import Q
 from django.db.models import Q
 # Create your views here.
+from django.utils import timezone
+# to paginate 
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 
 def index(request):
-    variants = Variant.objects.all().prefetch_related('product')
+    variants = Variant.objects.all()
     search_query = request.GET.get('q')
     if search_query:
         # Search in both product name and description using OR condition
@@ -33,18 +36,20 @@ def index(request):
 
 
 def shop(request):
-    # Retrieve all categories, products, and variants
+    # Retrieve all categories
     categories = Category.objects.all()
-    products = Product.objects.all()
-    variants = Variant.objects.all().prefetch_related('product__category')
 
     # Retrieve filter values from request.GET
     ram_filter = request.GET.get('ram')
     rom_filter = request.GET.get('rom')
     category_filter = request.GET.get('category_id')
     search_query = request.GET.get('q')
+
     # Retrieve sorting criteria from the request
     sort_by = request.GET.get('sort_by')
+
+    # Initialize variants queryset
+    variants = Variant.objects.all()
 
     # Apply filters if provided
     if ram_filter:
@@ -53,14 +58,17 @@ def shop(request):
         variants = variants.filter(internal_memory=rom_filter)
     if category_filter:
         variants = variants.filter(product__category__id=category_filter)
-
     # Apply search if a query is provided
     if search_query:
-        # Search in both product name and description using OR condition
         variants = variants.filter(
             Q(product__product_name__icontains=search_query) |
             Q(product__description__icontains=search_query) |
-            Q(product__category__category_name__icontains=search_query)
+            Q(product__product_offer__product_offer__icontains=search_query) |
+            Q(product__product_offer__discount__icontains=search_query) |
+            Q(product__category__category_name__icontains=search_query) |
+            Q(product__category__category_offer__category_offer__icontains=search_query)|
+            Q(product__category__category_offer__discount__icontains=search_query)
+
         )
 
     # Apply sorting if provided
@@ -73,22 +81,49 @@ def shop(request):
     elif sort_by == 'price_desc':
         variants = variants.order_by('-final_price')
 
-    # Check if any products found after filtering
-    if not variants.exists():
-        if ram_filter and rom_filter:
-            messages.warning(
-                request, f"No products with {ram_filter} RAM and {rom_filter} ROM")
+    for variant in variants:
+        final_price = variant.final_price
+        combined_discount = 0
 
+        # Check for product offer
+        current_time = timezone.now()
+        if variant.product.product_offer and variant.product.product_offer.active and variant.product.product_offer.valid_from <= current_time <= variant.product.product_offer.valid_to:
+            combined_discount += variant.product.product_offer.discount
+
+        # Check for category offer
+        if variant.product.category.category_offer and variant.product.category.category_offer.active and variant.product.category.category_offer.valid_from <= current_time <= variant.product.category.category_offer.valid_to:
+            combined_discount += variant.product.category.category_offer.discount
+
+        # Calculate offer price if there is a discount
+        if combined_discount > 0:
+            offer_price = final_price - (final_price * combined_discount / 100)
+        else:
+            offer_price = None
+
+        # Add offer price to the variant object
+        variant.offer_price = offer_price
+
+    # Pagination
+    paginator = Paginator(variants, 6)  
+    page_number = request.GET.get('page')
+    try:
+        variants_page = paginator.page(page_number)
+    except PageNotAnInteger:
+        variants_page = paginator.page(1)
+    except EmptyPage:
+        variants_page = paginator.page(paginator.num_pages)
+    
     context = {
         'categories': categories,
-        'variants': variants,
-        'products': products,
+        'variants': variants_page,  # Use the paginated variants
         'ram': ram_filter,
         'rom': rom_filter,
         'category_id': category_filter,
-        'sort_by': sort_by,  # Pass the sorting criteria to the template
-        'search_query': search_query,  # Pass the search query to the template
+        'sort_by': sort_by,
+        'search_query': search_query,
+        'paginator': paginator
     }
+    
     return render(request, 'main/shop.html', context)
 
 
@@ -106,14 +141,21 @@ class VariantForm(forms.ModelForm):
 session in add to cart is pass the ram and rom with the link '''
 
 
-@login_required(login_url='login')
 def product_details(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    variant_id = None
-    wishlist = None
     variant_id = request.GET.get('variant_id')
     selected_variant = Variant.objects.filter(id=variant_id).first()
     variant_form = VariantForm()
+    final_price = None
+    offer_price = None
+
+    quantity = None
+    days_remaining = None
+    combined_discount = None
+    product_offer = None
+    catogory_offer = None
+
+    is_avilable = product.available and product.category.is_available
 
     if request.method == 'POST':
         selected_ram = request.POST.get('ram')
@@ -131,32 +173,36 @@ def product_details(request, product_id):
             else:
                 final_price = "Not Available"
                 quantity = None
+
         else:
             final_price = "Not Available"
             quantity = None
+        variant_form = VariantForm(initial={'ram': selected_ram, 'internal_memory': selected_internal_memory})
     else:
         if selected_variant:
             final_price = selected_variant.final_price
             quantity = selected_variant.quantity
             variant_id = selected_variant.id
-        else:
-            final_price = None
-            quantity = None
 
     if selected_variant:
         variant_form = VariantForm(instance=selected_variant)
 
+    current_time = timezone.now()
+    if selected_variant:
+        offer_price, combined_discount, product_offer, catogory_offer = offer_calculaton(selected_variant.id, current_time)
+        print(catogory_offer)
+        if product.product_offer and product.product_offer.active and product.product_offer.valid_from <= current_time <= product.product_offer.valid_to:
+            days_remaining = int((
+                product.product_offer.valid_to - current_time).days)
+
     reviews = ReviewRating.objects.filter(variant=selected_variant)
     user_review = reviews.filter(user=request.user).first()
     other_reviews = reviews.exclude(user=request.user)
-    reviews_ordered = [user_review] + list(
-        other_reviews) if user_review else list(other_reviews)
+    reviews_ordered = [user_review] + list(other_reviews) if user_review else list(other_reviews)
 
     average_rating = reviews.aggregate(Avg('rating'))['rating__avg']
 
-    wishlist = WishList.objects.filter(user=request.user,
-                                       product=product,
-                                       variant=selected_variant).first()
+    wishlist = WishList.objects.filter(user=request.user, product=product, variant=selected_variant).first()
 
     context = {
         'product': product,
@@ -166,14 +212,51 @@ def product_details(request, product_id):
         'variant_id': variant_id,
         'selected_variant': selected_variant,
         'final_price': final_price,
+        'offer_price': offer_price,
         'user_review': user_review,
         'quantity': quantity,
         'reviews': reviews_ordered,
         'average_rating': average_rating,
-        'wishlist': wishlist
+        'wishlist': wishlist,
+        'is_avilable': is_avilable,
+        'days_remaining': days_remaining,
+        'combined_discount': combined_discount,
+        'product_offer': product_offer,
+        'catogory_offer': catogory_offer,
     }
 
     return render(request, "main/product_details.html", context)
+
+
+def offer_calculaton(variant_id, current_time):
+    vairant = get_object_or_404(Variant, id=variant_id)
+    combined_discount = 0
+    offer_price = None
+    final_price = vairant.final_price
+    product_offer = None
+    catogory_offer = None
+    if (final_price and
+            vairant.product.product_offer and
+            vairant.product.product_offer.active and
+            vairant.product.product_offer.valid_from <= current_time <= vairant.product.product_offer.valid_to):
+        combined_discount += vairant.product.product_offer.discount
+        product_offer = vairant.product.product_offer
+        print(combined_discount)
+
+    if (final_price and
+            vairant.product.category.category_offer and
+            vairant.product.category.category_offer.active and
+            vairant.product.category.category_offer.valid_from <= current_time <= vairant.product.category.category_offer.valid_to):
+        combined_discount += vairant.product.category.category_offer.discount
+        catogory_offer = vairant.product.category.category_offer
+        print(combined_discount)
+
+    if combined_discount > 0:
+        offer_price = final_price - (final_price * combined_discount/100)
+    else:
+        offer_price = offer_price
+
+    return offer_price, combined_discount, product_offer, catogory_offer
 
 
 @login_required(login_url='login')

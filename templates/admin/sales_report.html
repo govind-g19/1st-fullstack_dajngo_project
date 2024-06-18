@@ -1,9 +1,9 @@
 {% extends "admin/admin-base.html" %}
 
-{% block title %} Order Report {% endblock title %}
+{% block title %} Sales Report {% endblock title %}
 
 {% block pageheader %}
-<h2 class="page-font">Sales Report {{order.order_id}} </h2>
+<h2 class="page-font">Sales Report</h2>
 {% endblock pageheader %}
 
 {% block content %}
@@ -19,104 +19,208 @@
             {% endfor %}
         </div>
 
-        <div class='col-12'>
-    <form method="get" action="{% url 'sales_report' %}" class="mb-3">
-        <div class="row">
-            <div class="col-md-3">
-                <label for="start_date" class="form-label">Start Date:</label>
-                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date }}" required>
-            </div>
-            <div class="col-md-3">
-                <label for="end_date" class="form-label">End Date:</label>
-                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date }}" required>
-            </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary mt-4">Generate Report</button>
+        <div class="col-12">
+            <form method="get" action="{% url 'sales_report' %}" class="mb-3" id="sales-report-form">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="start_date" class="form-label">Start Date:</label>
+                        <input type="date" name="start_date" id="start_date" class="form-control"  >
+                    </div>
+                    <div class="col-md-3">
+                        <label for="end_date" class="form-label">End Date:</label>
+                        <input type="date" name="end_date" id="end_date" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_range" class="form-label">Date Range:</label>
+                        <select name="date_range" id="date_range" class="form-select">
+                            <option value="">Select Range</option>
+                            <option value="1 Day" {% if date_range == "1 Day" %} selected {% endif %}>Last 1 Day</option>
+                            <option value="1 Week" {% if date_range == "1 Week" %} selected {% endif %}>Last 1 Week</option>
+                            <option value="1 Month" {% if date_range == "1 Month" %} selected {% endif %}>Last 1 Month</option>
+                        </select>
+                       
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary mt-4">Generate Report</button>
+                    </div>
+                </div>
+            </form>
+            
+        </div>
+
+        <!-- Total Sales Summary Card -->
+        <div><p><span class="material-symbols-outlined">
+            calendar_month
+            </span> {{start_date|date:"d-m-Y"}} To {{end_date|date:"d-m-Y"}}</p> </div>
+
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Total Sales Summary</h5>
+                    <p>Total Revenue: {{ total_revenue|floatformat:2 }}</p>
+                    <p>Total Units Sold: {{ total_units_sold }}</p>
+                    <p>Average Order Value: {{ average_order_value|floatformat:2 }}</p>
+                </div>
             </div>
         </div>
-    </form>
-    <div class="card">
-        <div class="card-body">
-        <h5 class="card-title">Total Sales Summary</h5>
-        <p>Total Revenue: {{ total_revenue }}</p>
-        <p>Total Units Sold: {{ total_units_sold }}</p>
-        <p>Average Order Value: {{ average_order_value }}</p>
+
+        <!-- Top Selling Products Card -->
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Top Selling Products</h5>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Total Quantity Sold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in top_products %}
+                            <tr>
+                                <td>{{ product.product__product_name }}</td>
+                                <td>{{ product.total_quantity }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+
+        <!-- Sales by Product Variant Card -->
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Sales by Product Variant</h5>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Variant (RAM)</th>
+                                <th>Variant (Internal Memory)</th>
+                                <th>Total Revenue</th>
+                                <th>Total Units Sold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for variant in product_variant_sales %}
+                            <tr>
+                                <td>{{ variant.product__product_name }}</td>
+                                <td>{{ variant.variant__ram }}</td>
+                                <td>{{ variant.variant__internal_memory }}</td>
+                                <td>{{ variant.total_revenue }}</td>
+                                <td>{{ variant.total_units }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales by Category Card -->
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Sales by Category</h5>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Total Revenue</th>
+                                <th>Total Units Sold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in category_sales %}
+                            <tr>
+                                <td>{{ category.product__category__category_name }}</td>
+                                <td>{{ category.total_revenue }}</td>
+                                <td>{{ category.total_units }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Sold with Offers Card -->
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Items Sold with Offers</h5>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>User</th>
+                                <th>Product</th>
+                                <th>Variant</th>
+                                <th>Quantity</th>
+                                <th>Offer Price</th>
+                                <th>Product Discount</th>
+                                <th>Category Discount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order_item in items_with_offer %}
+                            <tr>
+                                <td><a href='{% url "detail_order" order_item.order.id  %}' style='text-decoration: none;'>{{ order_item.order.order_id }}</a></td>
+                                <td>{{ order_item.order.user.username }}</td>
+
+                                <td>{{ order_item.product.product_name }}</td>
+                                <td>{{ order_item.variant }}</td>
+                                <td>{{ order_item.quantity }}</td>
+                                <td>{{ order_item.offer_price }}</td>
+                                <td>{{ order_item.product_discount }}%</td>
+                                <td>{{ order_item.category_discount }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Sold with Coupons Card -->
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Coupons Sales</h5>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>User Nmae</th>
+                                <th>Coupon Discount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in items_with_coupons %}
+                            <tr>
+                                <td><a href='{% url "detail_order" order.id  %}' style='text-decoration: none;'>{{ order.order_id }}</a></td>
+                                <td>{{ order.user.username }}</td>
+                                <td>{{ order.coupon_discount }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Add these buttons/links somewhere in your sales_report.html -->
+        <a href="{% url 'sales_report' %}?export=excel" class="btn btn-primary">Export to Excel</a>
+        <a href="{% url 'sales_report' %}?export=pdf" class="btn btn-secondary">Export to PDF</a>
+
+
     </div>
-    <div class="card">
-        <div class="card-body">
-    <h5 class="card-title">Top Selling Products</h5>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Product</th>
-                <th>Quantity Sold</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for product in top_products %}
-            <tr>
-                <td>{{ product.product__product_name }}</td>
-                <td>{{ product.total_quantity }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-  </div>
-</div>
-<div class="card">
-    <div class="card-body">
-    <h5 class="card-title">Sales by Product Variant</h5>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Product</th>
-                <th>Variant (RAM)</th>
-                <th>Variant (Internal Memory)</th>
-                <th>Total Revenue</th>
-                <th>Total Units Sold</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for variant in product_variant_sales %}
-            <tr>
-                <td>{{ variant.product__product_name }}</td>
-                <td>{{ variant.variant__ram }}</td>
-                <td>{{ variant.variant__internal_memory }}</td>
-                <td>{{ variant.total_revenue }}</td>
-                <td>{{ variant.total_units }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
 </div>
 
-<div class="card">
-    <div class="card-body">
-    <h5 class="card-title">Sales by Category</h5>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Category</th>
-                <th>Total Revenue</th>
-                <th>Total Units Sold</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for category in category_sales %}
-            <tr>
-                <td>{{ category.product__category__category_name }}</td>
-                <td>{{ category.total_revenue }}</td>
-                <td>{{ category.total_units }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-</div>
-</div>
-</div>
-</div>
+
 
 {% endblock %}

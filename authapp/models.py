@@ -2,9 +2,24 @@ from django.db import models
 from django.contrib.auth.models import User
 import uuid
 from django.utils import timezone
-from adminmanager.models import Category, Product, Variant
+from adminmanager.models import Product, Variant
 from decimal import Decimal
 # Create your models here.
+
+
+class Referral(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='referral')
+    referral_code = models.UUIDField(default=uuid.uuid4,
+                                     editable=False,
+                                     unique=True)
+    referred_by = models.ForeignKey(User, related_name='referrals',
+                                    null=True, blank=True,
+                                    on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'''{self.user.username} is referred by
+        {self.referred_by.username}  code is{self.referral_code}'''
 
 
 class Address(models.Model):

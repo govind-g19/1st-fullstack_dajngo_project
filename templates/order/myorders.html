@@ -21,77 +21,102 @@
                 <div class="mb-3">
                     <div class=' d-flex justify-content-between'>
                         <p class="card-text fw-medium">Order ID: {{ order.order_id }}</p>
-                        {% if order.status == 'Cancelled' or order.status == 'Returned' %}
-                        <span class="text-danger">{{order.status}}<span>
+
+                        {% if order.status == 'Cancelled' or order.status == 'Returned' or order.status == 'Delivered' %}
+                        <span class="">{{order.status}}<span>
                         {% else %}
-                        <a href="{% url 'delete_myorder' orderid=order.id %}"><span class="material-symbols-outlined">
-                        close
-                        </span></a>
+                        <!-- Button trigger modal -->
+                        <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#exampleModal{{ order.id }}">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+
+                       
                         {% endif %}
-
                     </div>
-                    <p class="card-text fw-medium">Date of order: {{ order.order_date }} </p>
+                    <p class="card-text fw-medium">Address: {{ order.delivery_address.house_address }}, {{ order.delivery_address.city }},
+                        {{ order.delivery_address.state }} {{ order.delivery_address.pin_code }}
+                    </p>
+
+                    <table class="table table-hover fw-medium" style="border: 2px solid gray;">
+                        <thead>
+                            <th scope="col-" class="fw-bolder" style="width: 10%;">Product</th>
+                            <th scope="col-" class="fw-bolder" style="width: 10%;">Variant</th>
+                            <th scope="col" class="fw-bolder" style="width: 10%;">Image</th>
+                            <th scope="col" class="fw-bolder" style="width: 10%;">Quantity</th>
+                            <th scope="col" class="fw-bolder" style="width: 10%;">Payment Method</th>
+                            <th scope="col" class="fw-bolder" style="width: 10%;">Price</th>
+                            <th scope="col" class="fw-bolder" style="width: 10%;">Offer Price</th>
+                            <th scope="col" class="fw-bolder" style="width: 10%;">Product Discount in %</th>
+                            <th scope="col" class="fw-bolder" style="width: 10%;">Category Discount in %</th>
+                            <th scope="col" class="fw-bolder" style="width: 10%;">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for order_item in order.orderitem_set.all %}
+                          <tr>
+                              <td>{{ order_item.product.product_name }}</td>
+                              <td>{{ order_item.variant }}</td>
+                              <td><img src="{{ order_item.product.product_images.url }}" alt="Product Image" style="width: 50px;"></td>
+                              <td>{{ order_item.quantity }}</td>
+                              <td>{{ order.payment_method }}</td>
+                              <td>₹{{ order_item.price }}</td>
+                              {% if order_item.offer_price ==  order_item.price %}
+                              <td>N/A</td>
+                              {% else %}
+                              <td>₹{{ order_item.offer_price }}</td>
+                              {% endif %}
+                            
+                              {% if  order_item.product_discount == 0 %}
+                              <td>N/A</td>
+                              {% else %}
+                              <td>{{ order_item.product_discount }}% </td>
+                              {% endif %}
+                              {% if  order_item.category_discount == 0 %}
+                              <td>N/A</td>
+                              {% else %}
+                              <td>{{ order_item.category_discount }}% </td>
+                              {% endif %}
+                              <td>{{ order.status }}</td>
+                          </tr>
+                          {% endfor %}
+                      </tbody>
+                      <td><a href="{% url 'download_invoice' order.id %}">Download</a></td>
+                      {% if order.status == 'Delivered' %}
+                      <td><a class='btn btn-danger' href="{% url 'return_orders' order.id %}">Return</a></td>
+                      {% elif order.status == 'Returned' %}
+                      <td><a class='btn btn-danger disabled' href="{% url 'return_orders' order.id %}">Returned</a></td>
+                      {% endif %}
+                      </table>
+                        <p class="card-text fw-medium">Sub Total: {{ order.order_total }}</p>
+                        {% if order.coupon_discount > 0 %}
+                        <p class="card-text fw-medium">Coupon : {{ order.coupon_discount }}</p>
+                        {% endif %}
+                        {% if order.offer_discount > 0 %}
+                        <p class="card-text fw-medium">Offer Discount Amount: {{ order.offer_discount }}</p>
+                        {% endif %}
+                        <p class="card-text fw-medium">Shipping Cost: {{ order.shipping }}</p>
+                        <p class="card-text fw-medium">GST: {{ order.tax }}</p>
+                        <p class="card-text fw-medium">Grand Total: {{ order.grand_total }}</p>
+                        <p class="card-text fw-medium">Date of order: {{ order.order_date }} </p>
                 </div>
-                {% comment %} <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>RAM</th>
-                            <th>Memory</th>
-                            <th>Quantity</th>
-                            <th>Payment</th>
-                            <th>Status</th>
-                            <th>Price</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in order.orderitem_set.all %}
-                        <tr>
-                            <td>{{ item.product }}</td>
-                            <td>{{ item.ram }}</td>
-                            <td>{{ item.memory }}</td> <!-- Correct typo in 'memory' -->
-                            <td>{{ item.quantity }}</td>
-                            <td>{{ order.payment_method }}</td> <!-- Move payment_method outside the loop -->
-                            <td>{{ order.status }}</td> <!-- Move status outside the loop -->
-                            <td>{{ item.price }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table> {% endcomment %}
-                <table class="table table-hover fw-medium" style="border: 2px solid gray;">
-                    <thead>
-                        <th scope="col-" class="fw-bolder" style="width: 10%;">Product</th>
-                        <th scope="col-" class="fw-bolder" style="width: 10%;">Variant</th>
-                        <th scope="col" class="fw-bolder" style="width: 10%;">Image</th>
-                        <th scope="col" class="fw-bolder" style="width: 10%;">Quantity</th>
-                        <th scope="col" class="fw-bolder" style="width: 10%;">Payment Method</th>
-                        <th scope="col" class="fw-bolder" style="width: 10%;">Price</th>
-                        <th scope="col" class="fw-bolder" style="width: 10%;">Status</th>
-
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for order_item in order.orderitem_set.all %}
-                      <tr>
-                          <td>{{ order_item.product.product_name }}</td>
-                          <td>{{ order_item.variant }}</td>
-                          <td><img src="{{ order_item.product.product_images.url }}" alt="Product Image" style="width: 50px;"></td>
-                          <td>{{ order_item.quantity }}</td>
-                          <td>{{ order.payment_method }}</td>
-                          <td>₹{{ order_item.price }}</td>
-                          <td>{{ order.status }}</td>
-                      </tr>
-                      {% endfor %}
-                  </tbody>
-                  <td><a href="{% url 'download_invoice' order.id %}">Download</a></td>
-                  {% if order.status == 'Delivered' %}
-                  <td><a  class='btn btn-danger' href="{% url 'return_orders' order.id %}">Return</a></td>
-                  {% elif order.status == 'Returned' %}
-                  <td><a  class='btn btn-danger disabled' href="{% url 'return_orders' order.id %}">Returned</a></td>
-
-                  {% endif %}
-                  
-                  </table>
+            </div>
+        </div>
+         <!-- Modal -->
+         <div class="modal fade" id="exampleModal{{ order.id }}" tabindex="-1" aria-labelledby="exampleModalLabel{{ order.id }}" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel{{ order.id }}">Confirm Cancel</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Do you want to cancel the order {{ order.order_id }}?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <a href="{% url 'delete_myorder' orderid=order.id %}" class="btn btn-danger">Confrom</a>
+                    </div>
+                </div>
             </div>
         </div>
         {% endfor %}

@@ -33,6 +33,16 @@
                     <label for="exampleInputPassword1" class="form-label">Details</label>
                     <input type="text" class="form-control" name="category_details"id="exampleInputPassword1" required>
                   </div>
+
+                  <div class="mb-3">
+                    <label class="form-label" for="category">Product Offer</label>
+                    <select class="form-select" id="category_offer_id" name="category_offer_id" >
+                        <option value="" disabled selected>Select Category Offer</option>
+                        {% for offer in category_offers %}
+                        <option value="{{ offer.id }}" class='text-dark'>{{ offer.category_offer }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 
                   <div class="input_group">
                     <button type="submit" class="btn btn-secondary mb-2">Submit</button>

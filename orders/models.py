@@ -37,11 +37,17 @@ class Orders(models.Model):
     payment_method = models.CharField(max_length=30,
                                       choices=PAYMENT_METHODS,
                                       null=True, blank=True)
-    discount_given = models.DecimalField(max_digits=8,
-                                         decimal_places=2,
-                                         null=False, default=00)
-    shipping = models.FloatField()
-    tax = models.FloatField()
+    coupon_discount = models.DecimalField(max_digits=8, decimal_places=2,
+                                          null=False, default=00)
+    offer_discount = models.DecimalField(max_digits=8, decimal_places=2,
+                                           null=False, default=00)
+    # category_discount = models.DecimalField(max_digits=8, decimal_places=2,
+    #                                         null=False, default=00)
+    shipping = models.DecimalField(max_digits=8, decimal_places=2,
+                                   null=False, default=00)
+    tax = models.DecimalField(max_digits=8, decimal_places=2,
+                              null=False, default=00)
+
     grand_total = models.DecimalField(max_digits=10, decimal_places=2,
                                       null=False, default=0)
     order_date = models.DateTimeField(auto_now_add=True)
@@ -53,9 +59,6 @@ class Orders(models.Model):
     def __str__(self):
         return f"user: {self.user.username}, order_id: {self.order_id}"
 
-    # class Meta:
-    #     ordering = ['-id']
-
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Orders, on_delete=models.CASCADE)
@@ -64,8 +67,18 @@ class OrderItem(models.Model):
     memmory = models.CharField(max_length=10)
     ram = models.CharField(max_length=20)
     quantity = models.IntegerField(null=False, default=1)
+    offer_price = models.DecimalField(max_digits=8, decimal_places=2,
+                                      null=False, default=0)
     price = models.DecimalField(max_digits=8, decimal_places=2,
                                 null=False, default=0)
+    product_discount = models.DecimalField(max_digits=8, decimal_places=2,
+                                           null=False, default=0)
+    category_discount = models.DecimalField(max_digits=8, decimal_places=2,
+                                            null=False, default=0)
+
+    def __str__(self):
+        return f'''orderid-{self.order.id} user-{self.order.user} 
+        product-{self.product.product_name}, {self.variant}'''
 
 
 class Payment(models.Model):

@@ -21,23 +21,37 @@
         <div class="col-12">
             <div class="card">
                     <div class="card-body">
-                    <p class="card-text"><strong>Username:</strong> {{order.user.username|upper}}</p>
-                    <p class="card-text"><strong>Customer Name:</strong> {{order.delivery_address.first_name}} {{order.delivery_address.second_name}}</p>
-                    <p class="card-text"><strong>Email:</strong> {{order.user.email}}</p>
-                    <p class="card-text"><strong>Phone number:</strong> {{ order.delivery_address.phone_number}}</p>
-                    <p class="card-text"><strong>Date of order: </strong>{{order.order_date|date:"d-m-Y H:i" }}</p>
-                <p><strong>Address</strong> {{ order.delivery_address.house_address }}, {{ order.delivery_address.city }} in {{ order.delivery_address.state }}</p>
-                <h5><strong>Product Items </strong></h5>
-                <p class="card-text"><strong>Number of items</strong>{{order_items.count}}</p>
+                <h6><strong>User Details </strong></h6>
+                    <p class="card-text fw-medium">Username: {{order.user.username}}</p>
+                    <p class="card-text fw-medium">Full Name: {{order.delivery_address.first_name}} {{order.delivery_address.second_name}}</p>
+                    <p class="card-text fw-medium">Email: {{order.user.email}}</p>
+                    <p class="card-text fw-medium">Phone number: {{ order.delivery_address.phone_number}}</p>
+                    <p class="card-text fw-medium">Date of order: {{order.order_date|date:"d-m-Y H:i" }}</p>
+                <h6><strong>Address </strong></h6>
+                <p>{{ order.delivery_address.house_address }}, {{ order.delivery_address.city }} in {{ order.delivery_address.state }}</p>
+                <h6><strong>Order Summary </strong></h6>
+                <p class="card-text fw-medium">Payment Method: {{ order.payment_method }}</p>
+                <p class="card-text fw-medium">Status: {{ order.status }}</p>
+                <p class="card-text fw-medium">Coupon: {{order.coupon_discount}}</p>
+                <p class="card-text fw-medium">Discount amount: {{order.offer_discount}}</p>
+                <p class="card-text fw-medium">shipping: {{order.shipping}}</p>
+                <p class="card-text fw-medium">Tax: {{order.tax}}</p>
+                <p class="card-text fw-medium">Total: {{order.grand_total}}</p>
+                
+                <p class="card-text">Number of items{{order_items.count}}</p>
+                <h6><strong>Product Items </strong></h6>
                 {% for order_item in order_items %}
-                <p class="card-text"><strong>Item: </strong>{{ order_item.product.product_name }} with{{ order_item.variant }} </p>
-                <p class="card-text"><strong>Price: </strong>₹{{ order_item.price }}</p>
-                <p class="card-text"><strong>Quantity: </strong>{{ order_item.quantity }}</p>
-                <p class="card-text"><strong>Total: </strong>₹{{ order.grand_total }}</p>
-                <p class="card-text"><strong>Payment Method: </strong>{{ order.payment_method }}</p>
-                <p class="card-text"><strong>Status: </strong>{{ order.status }}</p>
-                <a href="{% url 'download_invoice' order.id %}">Download</a>
+                <p class="card-text fw-medium">Item: {{ order_item.product.product_name }} with{{ order_item.variant }} </p>
+                <p class="card-text fw-medium">Price: ₹{{ order_item.price }}</p>
+                {% if order_item.product_discount or order_item.category_discount %}
+                <p class="card-text fw-medium">Product Offer: {{ order_item.product_discount }} %</p>
+                <p class="card-text fw-medium">Category Offer: {{ order_item.category_discount }}%</p>
+                <p class="card-text fw-medium">Offer Price: ₹{{ order_item.offer_price }}</p>
+                {% endif %}
+                <p class="card-text fw-medium">Quantity: {{ order_item.quantity }}</p>
                 {% endfor %}
+                <a href="{% url 'download_invoice' order.id %}">Download</a>
+
                 </div>
                 </div>
         </div>

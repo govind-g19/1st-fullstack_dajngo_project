@@ -28,15 +28,10 @@
             </div>
             {% endfor %}
             <div class="mb-2">
-                <label for="id_product" class="form-label">Product</label>
-                <select class="form-select" name="product" required>
-                    {% for product in products %}
-                        <option value="{{ product.id }}" {% if product.id in form.product.value %}selected{% endif %}>
-                            {{ product.product_name }}
-                        </option>
-                    {% endfor %}
-                </select>
+                {% comment %} <label for="id_product" class="form-label">Product</label> {% endcomment %}
+                <input type="hidden" class="form-control"  name="product" disabled value="{{ form.initial.product.product_name }}">
             </div>
+    
 
             <div class="mb-2">
                 <label for="ram" class="form-label">RAM</label>

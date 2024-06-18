@@ -34,6 +34,16 @@
             <input type="text" class="form-control" name="category_details" id="exampleInputPassword1" required value="{{  cat.category_details }}">
         </div>
 
+        <div class="mb-3">
+            <label class="form-label" for="category">Category Offer</label>
+            <select class="form-select" id="category_offer_id" name="category_offer_id" required>
+                <option value="" disabled selected>Select Category Offer</option>
+                {% for offer in category_offers %}
+                <option value="{{ offer.id }}" class='text-dark' {% if cat.category_offer and cat.category_offer.id  == offer.id  %}selected{% endif %}>{{ offer.category_offer }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
         <div class="input_group">
             <button type="submit" class="btn btn-secondary mb-2">Submit</button>
         </div>

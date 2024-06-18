@@ -29,6 +29,7 @@
                   <th scope="col" class="fw-bolder" style="width: 10%;">Image</th>
                   <th scope="col" class="fw-bolder" style="width: 10%;">Quantity</th>
                   <th scope="col" class="fw-bolder" style="width: 10%;">Price</th>
+                  <th scope="col" class="fw-bolder" style="width: 10%;">Offer Price</th>
                 </tr>
               </thead>
               <tbody>
@@ -39,6 +40,15 @@
                     <td><img src="{{ order_item.product.product_images.url }}" alt="Product Image" style="width: 50px;"></td>
                     <td>{{ order_item.quantity }}</td>
                     <td>₹{{ order_item.price }}</td>
+                    {% if  order_item.offer_price %}
+                    <td>₹{{ order_item.offer_price }}</td>
+                    {% else %}
+                    <td>N/A</td>
+                    {% endif %}
+                    {% if order_item. %}
+                    
+                    {% else %}
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
@@ -65,8 +75,9 @@
                   <p><strong>Date of Order:</strong> {{ order.order_date }}</p>
                   <p><strong>Payment Mode:</strong> {{ order.payment_method }}</p>
                   {% if order.payment_method == "Razorpay" %}
-                  <p><strong>Payment Mode:</strong> {{ payment.payment_id}}</p>
-                  <p><strong>Payment Mode:</strong> {{ payment.status }}</p>
+                  <p><strong>Payment id:</strong> {{ payment.payment_id}}</p>
+                  <p><strong>Payment status:</strong> {{ payment.status }}</p>
+                  
                   {% endif %}{% for order_item in orderitems %}
                   <p><strong>Order items:</strong> {{ order_item.product.product_name }} with {{ order_item.ram }}RAM & {{ order_item.memmory }} ROM</p>
                   {% endfor %}

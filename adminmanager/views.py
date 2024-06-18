@@ -3,20 +3,36 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from .models import Category, Product, ProductImage, Variant, ReviewRating
-from .models import ProductOffers
+from .models import ProductOffers, CategoryOffers
 from orders.models import Orders, OrderItem
 from authapp.models import Wallet, Transaction
 # from orders.models import Payment, OrderItem
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import cache_control, never_cache
 from .forms import VariantForm
-from django.db.models import Avg, Sum, Count
+from django.db.models import Avg, Sum, Count, F, Sum, ExpressionWrapper, Q
 from django.http import HttpResponseForbidden
 from datetime import datetime, timedelta, date
 from decimal import Decimal
-from .forms import UpdateOrderStatusForm, ProductOfferForm
+from .forms import UpdateOrderStatusForm, ProductOfferForm, CategoryOfferform
 from django.contrib.auth.decorators import user_passes_test
 from django.utils import timezone
+from django.utils.dateparse import parse_date
+import pandas as pd
+# Include these imports if not already included
+from django.shortcuts import render
+from django.http import HttpResponse
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+from django.core.paginator import Paginator,EmptyPage,PageNotAnInteger
+import os
+import io
+from django.template import loader
+
 
 def superuser_required(function=None):
     """
@@ -138,9 +154,27 @@ def Edit_Cat(request, id):
 
     if request.method == "POST":
         category_name = request.POST.get("category_name")
-        category_details = request.POST.get(
-            "category_details"
-        )  # Updated variable name
+        category_details = request.POST.get("category_details")
+        category_offer_id = request.POST.get("category_offer_id")
+        # to pass all the category offers
+        if category_offer_id:
+            category_offer = get_object_or_404(CategoryOffers, id=category_offer_id)
+        else:
+            category_offer = None
+        # category offer validation
+        if category_offer:
+            now = timezone.now()
+            valid_from_date = category_offer.valid_from
+            valid_to_date = category_offer.valid_to
+            # Currect time validation
+            if not (valid_from_date <= now <= valid_to_date):
+                messages.error(request, f'''{category_offer} offer is not valid
+                                within the current date or time.''')
+                return redirect('edit_category', id=id)
+            if not category_offer.active:
+                messages.error(request,
+                               f'{category_offer} offer is not active.')
+                return redirect('edit_category', id=id)
         if Category.objects.filter(category_name=category_name).exclude(
                 pk=id).exists():
             messages.error(request, 'same category exists try another name')
@@ -157,11 +191,16 @@ def Edit_Cat(request, id):
             return redirect('edit_category', id=id)
         cat.category_name = category_name
         cat.category_details = category_details
+        cat.category_offer = category_offer
         cat.save()
+        messages.success(request, 'the Category is edited')
+        return redirect("category")
 
-        return redirect("/adminmanager/category")
+    category_offers = CategoryOffers.objects.all()
 
-    context = {"cat": cat}
+    context = {"cat": cat,
+               'category_offers': category_offers
+               }
     return render(request, "admin/edit_category.html", context)
 
 
@@ -170,34 +209,57 @@ def add_category(request):
     if request.method == "POST":
         name = request.POST.get("category_name")
         details = request.POST.get("category_details")
+        category_offer_id = request.POST.get("category_offer_id")
 
-        if not name:
-            messages.error(request, "Category name is required.")
-            return render(request, "admin/add_category.html")
-        # to check the no blank space
+        # Ensure category_offer_id is valid
+        category_offer = None
+        if category_offer_id:
+            category_offer = get_object_or_404(CategoryOffers, id=category_offer_id)
+
+        # Offer validations
+        if category_offer:
+            now = timezone.now()
+            valid_from_date = category_offer.valid_from
+            valid_to_date = category_offer.valid_to
+
+            if not (valid_from_date <= now <= valid_to_date):
+                messages.error(request, f'The offer {category_offer.category_offer} is not valid within the current date or time.')
+                return redirect('add_category')
+
+            if not category_offer.active:
+                messages.error(request, f'The offer {category_offer.category_offer} is not active.')
+                return redirect('add_category')
+
+        # Check for blank spaces and ensure the name is alphanumeric
         if not name.isalnum():
-            messages.error(request, 'Requir a Category name')
+            messages.error(request, 'Category name must be alphanumeric.')
             return redirect('add_category')
 
-        try:
-            Category.objects.get(category_name=name)
+        # Check if category already exists
+        if Category.objects.filter(category_name=name).exists():
             messages.warning(request, "Category already exists.")
-            return render(request, "admin/add_category.html")
-        except Category.DoesNotExist:
-            pass
+            return redirect('add_category')
 
+        # Create the new category
         try:
             Category.objects.create(
-                category_name=name, category_details=details, is_available=True
+                category_name=name,
+                category_details=details,
+                is_available=True,
+                category_offer=category_offer
             )
             messages.success(request, "Category added successfully.")
-            return redirect("/adminmanager/category")
+            return redirect('category')
         except Exception as e:
-            messages.error(request, f'''Error occurred while
-                            adding category: {str(e)}''')
+            messages.error(request, f'Error occurred while adding category: {str(e)}')
             return render(request, "admin/add_category.html")
 
-    return render(request, "admin/add_category.html")
+    # Handle GET request
+    category_offers = CategoryOffers.objects.all()
+    context = {
+        'category_offers': category_offers
+    }
+    return render(request, "admin/add_category.html", context)
 
 
 @superuser_required
@@ -234,7 +296,6 @@ def undo_soft_delete_category(request, id):
 
 
 # product
-
 @superuser_required
 def Product_list(request):
     categories = Category.objects.all()
@@ -321,7 +382,7 @@ def Add_Product(request):
         except Exception as e:
             messages.error(request, f"Error occurred: {str(e)}")
             return redirect("/adminmanager/add_product")
-        
+
     product_offers = ProductOffers.objects.all()
     categories = Category.objects.all().order_by("id")
     context = {"categories": categories,
@@ -431,7 +492,7 @@ def view_variant(request, product_id):
     # Retrieve all variants associated with the product
     variants = Variant.objects.filter(product=product)
     if not variants.exists():  # Check if the QuerySet is empty
-        return redirect('add_varient')
+        return redirect('add_variant', product_id=product_id)
     variant_ratings = {}
     for variant in variants:
         reviews = ReviewRating.objects.filter(variant=variant)
@@ -443,6 +504,7 @@ def view_variant(request, product_id):
     context = {
         'product': product,
         'variants': variants,
+        'product_id': product_id,
         # 'review': reviews,
         'variant_ratings': variant_ratings,
     }
@@ -499,15 +561,27 @@ def admin_unblock_review(request, review_id):
 
 
 @superuser_required
-def add_varient(request):
+def add_variant(request, product_id):
+    products = get_object_or_404(Product, id=product_id)
     if request.method == 'POST':
-        form = VariantForm(request.POST)
+        form = VariantForm(request.POST, product_id=product_id)
         if form.is_valid():
-            form.save()
-            return redirect('product_list')
+            cleaned_data = form.cleaned_data
+            existing_variant = Variant.objects.filter(
+                product=products,
+                ram=cleaned_data['ram'],
+                internal_memory=cleaned_data['internal_memory']
+            )
+            if existing_variant.exists():
+                form.add_error(None, 'Variant with the same RAM and internal memory already exists for this product.')
+            else:
+                variant = form.save(commit=False)
+                variant.product = products
+                variant.save()
+                form.save()
+                return redirect('view_variant', product_id=product_id)
     else:
         form = VariantForm()
-    products = Product.objects.all()
     context = {
         'products': products,
         'form': form
@@ -518,20 +592,32 @@ def add_varient(request):
 
 def edit_varient(request, id):
     variant = get_object_or_404(Variant, pk=id)
+    product = variant.product
+
     if request.method == 'POST':
         form = VariantForm(request.POST, instance=variant)
         if form.is_valid():
-            form.save()
-            return redirect('view_variant',
-                            product_id=variant.product.first().id)
+            cleaned_data = form.cleaned_data
+            existing_variant = Variant.objects.filter(
+                product=product,
+                ram=cleaned_data['ram'],
+                internal_memory=cleaned_data['internal_memory']
+            )
+            if existing_variant.exists() and existing_variant.first().id != variant.id:
+                messages.error(request, 'variant already excists')
+                return redirect('edit_varient', id=variant.id)
+            else:
+                variant = form.save(commit=False)
+                variant.product = product
+                variant.save()
+                form.save()
+            return redirect('view_variant', product_id=product.id)
     else:
         form = VariantForm(instance=variant)
 
     context = {
         'variant': variant,
         'form': form,
-        'products': Product.objects.all()
-        # This may not be necessary if the form handles product selection.
     }
 
     return render(request, "admin/edit_varient.html", context)
@@ -540,7 +626,7 @@ def edit_varient(request, id):
 @superuser_required
 def delete_variant(request, product_id):
     variants = get_object_or_404(Variant, pk=product_id)
-    product = variants.product.first()
+    product = variants.product
     variants.deleted = True
     print("delete=true")
     variants.is_available = False
@@ -551,7 +637,7 @@ def delete_variant(request, product_id):
 @superuser_required
 def undo_delete_variant(request, product_id):
     variants = get_object_or_404(Variant, pk=product_id)
-    product = variants.product.first()
+    product = variants.product
     variants.deleted = False
     variants.is_available = True
     variants.save()
@@ -561,7 +647,7 @@ def undo_delete_variant(request, product_id):
 @superuser_required
 def admin_order_view(request):
     orders = Orders.objects.all().select_related('user').prefetch_related(
-        'orderitem_set')
+        'orderitem_set').order_by('-order_date')
 
     if request.method == 'POST':
         form = UpdateOrderStatusForm(request.POST)
@@ -717,40 +803,40 @@ def detail_order(request, orderid):
 
 @superuser_required
 def sales_report(request):
-    # Retrieve start and end dates from request parameters
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
+    start_date_param = request.GET.get('start_date')
+    end_date_param = request.GET.get('end_date')
+    date_range = request.GET.get('date_range')
 
-    # Default to the last 30 days if no dates are provided
-    if not start_date or not end_date:
-        start_date = date.today() - timedelta(days=30)
-        end_date = date.today()
+    if not start_date_param or not end_date_param:
+        if date_range == "1 Day":
+            start_date = datetime.today()
+            end_date = start_date + timedelta(days=1)
+        elif date_range == "1 Week":
+            start_date = datetime.today() - timedelta(days=7)
+            end_date = datetime.today()
+        elif date_range == "1 Month":
+            start_date = datetime.today() - timedelta(days=30)
+            end_date = datetime.today()
+        else:
+            start_date = datetime.today() - timedelta(days=30)
+            end_date = datetime.today()
     else:
-        start_date = date.fromisoformat(start_date)
-        end_date = date.fromisoformat(end_date)
+        start_date = parse_date(start_date_param)
+        end_date = parse_date(end_date_param)
 
-    # Retrieve sales data from the database
-    sales_data = Orders.objects.filter(is_active=True, order_date__range=[start_date, end_date])
+    # sales_data = Orders.objects.filter(is_active=True, order_date__range=[start_date, end_date])
+    sales_data = Orders.objects.filter(order_date__range=[start_date, end_date])
+    print(sales_data)
 
-    # Calculate total sales revenue
-    total_revenue = sales_data.aggregate(total_sales=Sum('order_total'))['total_sales']
-
-    # Calculate total number of orders
+    total_revenue = sales_data.aggregate(total_sales=Sum('grand_total'))['total_sales']
     total_orders = sales_data.count()
-
-    # Calculate number of units sold
     total_units_sold = OrderItem.objects.filter(order__in=sales_data).aggregate(total_units=Sum('quantity'))['total_units']
 
-    # Calculate average order value
     average_order_value = total_revenue / total_orders if total_orders > 0 else 0
-
-    # Format to have a maximum of 2 decimal points
     average_order_value = round(average_order_value, 2)
 
-    # Retrieve top selling products
     top_products = OrderItem.objects.filter(order__in=sales_data).values('product__product_name').annotate(total_quantity=Sum('quantity')).order_by('-total_quantity')[:5]
 
-    # Sales by product variant
     product_variant_sales = OrderItem.objects.filter(order__in=sales_data).values(
         'variant__id', 'variant__ram', 'variant__internal_memory', 'product__product_name'
     ).annotate(
@@ -758,23 +844,290 @@ def sales_report(request):
         total_units=Sum('quantity')
     ).order_by('-total_revenue')
 
-    # Sales by category
     category_sales = OrderItem.objects.filter(order__in=sales_data).values('product__category__category_name').annotate(total_revenue=Sum('price'), total_units=Sum('quantity')).order_by('-total_revenue')
 
-    # Prepare context for rendering the template
+    items_with_offer = OrderItem.objects.filter(
+        order__in=sales_data,
+        product_discount__gt=0,
+        category_discount__gt=0
+    )
+
+    items_with_coupons = Orders.objects.filter(
+        Q(is_active=True, order_date__range=[start_date, end_date]) & (Q(coupon_discount__gt=0)))
+    print("the offer product is", items_with_offer)
+
+    order_details = Orders.objects.filter(order_date__range=[start_date, end_date]).select_related('user').prefetch_related('orderitem_set')
+
     context = {
         'start_date': start_date,
         'end_date': end_date,
+        'sales_data': sales_data,
         'total_revenue': total_revenue,
         'total_units_sold': total_units_sold,
         'average_order_value': average_order_value,
         'top_products': top_products,
         'product_variant_sales': product_variant_sales,
-        'category_sales': category_sales
+        'category_sales': category_sales,
+        'items_with_offer': items_with_offer,
+        'items_with_coupons': items_with_coupons,
+        'order_details': order_details,
+        'total_orders': total_orders,
     }
 
-    # Render the template with the context
+    export_type = request.GET.get('export')
+    if export_type == 'excel':
+        return export_to_excel(context)
+    elif export_type == 'pdf':
+        return export_to_pdf(context)
+
     return render(request, 'admin/sales_report.html', context)
+
+
+def export_to_excel(context):
+    summary_data = {
+        'Metric': ['Total Revenue', 'Total Units Sold', 'Average Order Value', 'Total Orders'],
+        'Value': [
+            context['total_revenue'],
+            context['total_units_sold'],
+            context['average_order_value'],
+            context['total_orders']
+        ]
+    }
+
+    top_products_data = {
+        'Product': [product['product__product_name'] for product in context['top_products']],
+        'Total Quantity Sold': [product['total_quantity'] for product in context['top_products']]
+    }
+
+    product_variant_data = {
+        'Product': [variant['product__product_name'] for variant in context['product_variant_sales']],
+        'Variant (RAM)': [variant['variant__ram'] for variant in context['product_variant_sales']],
+        'Variant (Internal Memory)': [variant['variant__internal_memory'] for variant in context['product_variant_sales']],
+        'Total Revenue': [variant['total_revenue'] for variant in context['product_variant_sales']],
+        'Total Units Sold': [variant['total_units'] for variant in context['product_variant_sales']]
+    }
+
+    category_sales_data = {
+        'Category': [category['product__category__category_name'] for category in context['category_sales']],
+        'Total Revenue': [category['total_revenue'] for category in context['category_sales']],
+        'Total Units Sold': [category['total_units'] for category in context['category_sales']]
+    }
+
+    order_data = []
+    for order in context['order_details']:
+        for item in order.orderitem_set.all():
+            order_data.append([
+                order.order_id, order.user.username, order.grand_total, order.status, order.payment_method,
+                order.order_date.strftime('%Y-%m-%d %H:%M'),
+                f"{item.product.product_name} - {item.variant} - {item.quantity} - ₹{item.price}",
+                item.product_discount, item.category_discount
+            ])
+    summary_data = {
+        'Metric': ['Total Revenue', 'Total Units Sold', 'Average Order Value', 'Total Orders'],
+        'Value': [
+            context['total_revenue'],
+            context['total_units_sold'],
+            context['average_order_value'],
+            context['total_orders']
+        ]
+    }
+
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = 'attachment; filename=sales_report.xlsx'
+
+    with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+        pd.DataFrame(summary_data).to_excel(writer, sheet_name='Summary', index=False)
+        pd.DataFrame(top_products_data).to_excel(writer, sheet_name='Top Selling Products', index=False)
+        pd.DataFrame(product_variant_data).to_excel(writer, sheet_name='Product Variant Sales', index=False)
+        pd.DataFrame(category_sales_data).to_excel(writer, sheet_name='Category Sales', index=False)
+        pd.DataFrame(order_data, columns=[
+            'Order ID', 'User', 'Total', 'Status', 'Payment Method', 'Order Date', 'Items', 'Product Discount', 'Category Discount'
+        ]).to_excel(writer, sheet_name='Order Details', index=False)
+
+    return response
+
+
+
+def export_to_pdf(context):
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename=sales_report.pdf'
+
+    pdf = SimpleDocTemplate(response, pagesize=letter)
+    page_width = letter[0]
+    table_width = 0.8 * page_width
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph('Sales Report', styles['Title']))
+    elements.append(Paragraph('Report initialized date  ', styles['Heading2']))
+    elements.append(Paragraph(f"From {context['start_date'].strftime('%d-%m-%Y')} to {context['end_date'].strftime('%d-%m-%Y')}", styles['Normal']))
+    elements.append(Spacer(1, 12))
+
+    # Function to create tables with specified width
+    def create_table(data, col_widths):
+        table = Table(data, colWidths=col_widths)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ]))
+        return table
+
+    # Summary Table
+    summary_data = [
+        ['Metric', 'Value'],
+        ['Total Revenue', context['total_revenue']],
+        ['Total Units Sold', context['total_units_sold']],
+        ['Average Order Value', context['average_order_value']],
+        ['Total Orders', context['total_orders']],
+    ]
+    elements.append(Paragraph('Summary', styles['Heading2']))
+    summary_col_widths = [table_width * 0.5, table_width * 0.5]
+    summary_table = create_table(summary_data, summary_col_widths)
+    elements.append(summary_table)
+    elements.append(Spacer(1, 12))
+
+    # Top Products Table
+    elements.append(Paragraph('Top Selling Products', styles['Heading2']))
+    top_products_data = [['Product', 'Total Quantity Sold']]
+    for product in context['top_products']:
+        top_products_data.append([product['product__product_name'], product['total_quantity']])
+    top_products_col_widths = [table_width * 0.5, table_width * 0.5]
+    top_products_table = create_table(top_products_data, top_products_col_widths)
+    elements.append(top_products_table)
+    elements.append(Spacer(1, 12))
+
+    # Items with Offer Table
+    elements.append(Paragraph('Items with Offer', styles['Heading2']))
+    items_with_offer_data = [['Order ID', 'User', 'Product', 'Ram', 'ROM', 'Quantity', 'Offer', 'P-Discount', 'C-discount']]
+    for item in context['items_with_offer']:
+        items_with_offer_data.append([
+            item.order.order_id,
+            item.order.user.username,
+            item.product.product_name,
+            item.variant.ram,
+            item.variant.internal_memory,
+            item.quantity,
+            item.offer_price,
+            item.product_discount,
+            item.category_discount,
+        ])
+    items_with_offer_col_widths = [
+        table_width * 0.1, table_width * 0.1, table_width * 0.15,table_width * 0.1,
+        table_width * 0.1, table_width * 0.125, table_width * 0.125,
+        table_width * 0.125, table_width * 0.125
+    ]
+    items_with_offer_table = create_table(items_with_offer_data, items_with_offer_col_widths)
+    elements.append(items_with_offer_table)
+    elements.append(Spacer(1, 12))
+
+    # Items with Coupons Table
+    elements.append(Paragraph('Items with Coupons', styles['Heading2']))
+    items_with_coupons_data = [['Order ID', 'User Name', 'Coupon Discount']]
+    for order in context['items_with_coupons']:
+        items_with_coupons_data.append([
+            order.order_id,
+            order.user.username,
+            order.coupon_discount,
+        ])
+    items_with_coupons_col_widths = [table_width * 0.33, table_width * 0.33, table_width * 0.33]
+    items_with_coupons_table = create_table(items_with_coupons_data, items_with_coupons_col_widths)
+    elements.append(items_with_coupons_table)
+    elements.append(Spacer(1, 12))
+
+    # Order Details Table
+    elements.append(Paragraph('Order Details', styles['Heading2']))
+    order_details_data = [['Order ID', 'User', 'Total', 'Status', 'Payment', 'Order Date', 'Product', 'Quantity', 'Price', 'Offer Price']]
+
+    for order in context['order_details']:
+        for item in order.orderitem_set.all():
+            # Append each item detail as a separate row
+            order_details_data.append([
+                order.order_id,
+                order.user.username,
+                order.grand_total,
+                order.status,
+                order.payment_method,
+                order.order_date.strftime('%Y-%m-%d'),
+                item.product.product_name,
+                item.quantity,
+                f"{item.price}",
+                f"{item.offer_price}"
+            ])
+
+    # Define column widths
+    page_width = letter[0]  # Width of the letter-sized page
+    table_width = .8 * page_width
+    order_details_col_widths = [
+        table_width * 0.1, table_width * 0.15, table_width * 0.1, 
+        table_width * 0.1, table_width * 0.1, table_width * 0.15, 
+        table_width * 0.15, table_width * 0.1, table_width * 0.1, table_width * 0.1
+    ]
+
+    # Create the table
+    order_details_table = Table(order_details_data, colWidths=order_details_col_widths)
+    order_details_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+
+    elements.append(order_details_table)
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph('Items', styles['Heading2']))
+
+    # Prepare data for Items Table
+    items_table_data = [['Order ID', 'Product Name', 'Variant', 'Product Discount', 'Category Discount']]
+
+    for order in context['order_details']:
+        for item in order.orderitem_set.all():
+            items_table_data.append([
+                order.order_id,
+                item.product.product_name,
+                f"{item.variant.internal_memory} - {item.variant.ram}",  # Example of combining variant details
+                item.product_discount,
+                item.category_discount,
+            ])
+
+    # Define column widths for Items Table
+    items_table_col_widths = [
+        table_width * 0.2, table_width * 0.2, table_width * 0.2,
+        table_width * 0.2, table_width * 0.2
+    ]
+
+    # Create the Items Table
+    items_table = Table(items_table_data, colWidths=items_table_col_widths)
+    items_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+
+    # Append Items Table to elements list
+    elements.append(items_table)
+    elements.append(Spacer(1, 12))
+
+    # Build the PDF
+    pdf.build(elements)
+    return response
 
 
 def add_product_offer(request):
@@ -837,3 +1190,64 @@ def undo_delete_product_offer(request, offer_id):
     messages.success(request, 'The offer is activated')
 
     return redirect('product_offers_list')
+
+
+def add_category_offer(request):
+    if request.method == "POST":
+        form = CategoryOfferform(request.POST)
+        try:
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Category offer added successfully.")
+                return redirect('category_offers_list')
+            else:
+                # If form is not valid, re-render the form with error messages
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"{field}: {error}")
+        except Exception as e:
+            # Log the exception or handle it appropriately
+            messages.error(request, f"There was an error while saving the category offer: {e}")
+    else:
+        form = CategoryOfferform()
+
+    return render(request, 'admin/add_category_offers.html', {'form': form})
+
+
+def category_offers_list(request):
+    category_offers = CategoryOffers.objects.all()
+    context = {
+        'category_offers': category_offers
+    }
+    return render(request, 'admin/category_offer_list.html', context)
+
+
+def edit_category_offer(request, offer_id):
+    offer = get_object_or_404(CategoryOffers, id=offer_id)
+    if request.method == "POST":
+        form = CategoryOfferform(request.POST, instance=offer)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'category Offer is Updated')
+            return redirect('category_offers_list')
+    else:
+        form = CategoryOfferform(instance=offer)
+
+    return render(request, 'admin/edit_category_offer.html', {'form': form})
+
+
+def delete_category_offer(request, offer_id):
+    offer = get_object_or_404(CategoryOffers, id=offer_id)
+    offer.active = False
+    offer.save()
+    messages.success(request, 'The offer is deactivated')
+    return redirect('category_offers_list')
+
+
+def undo_delete_category_offer(request, offer_id):
+    offer = get_object_or_404(CategoryOffers, id=offer_id)
+    offer.active = True
+    offer.save()
+    messages.success(request, 'The offer is activated')
+
+    return redirect('category_offers_list')

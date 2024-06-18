@@ -6,11 +6,29 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 # Catagory
 
 
+class CategoryOffers(models.Model):
+    category_offer = models.CharField(max_length=100)
+    discount = models.IntegerField(default=0)
+    valid_from = models.DateTimeField()
+    valid_to = models.DateTimeField()
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.category_offer
+
+    def discount_percent(self):
+        self.discount = self.discount/100
+        return self.discount
+
+
 class Category(models.Model):
     category_name = models.CharField(max_length=150, unique=True)
     soft_deleted = models.BooleanField(default=False)
     category_details = models.TextField(null=True, blank=True)
     is_available = models.BooleanField(default=True, blank=True, null=True)
+    category_offer = models.ForeignKey(CategoryOffers,
+                                       on_delete=models.CASCADE,
+                                       null=True, blank=True)
 
     def __str__(self):
         return self.category_name
@@ -42,7 +60,8 @@ class Product(models.Model):
     modified_date = models.DateField(auto_now=True)
     available = models.BooleanField(default=True)
     soft_deleted = models.BooleanField(default=False)
-    product_offer = models.ForeignKey(ProductOffers, on_delete=models.CASCADE, null=True, blank=True)
+    product_offer = models.ForeignKey(ProductOffers, on_delete=models.CASCADE,
+                                      null=True, blank=True)
 
     def __str__(self):
         return f"{self.product_name}"
@@ -66,7 +85,8 @@ class Variant(models.Model):
     internal_memory = models.CharField(max_length=50,
                                        choices=INTERNAL_MEMORY_CHOICES)
     final_price = models.FloatField(null=True, blank=True)
-    product = models.ManyToManyField(Product)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True,
+                                blank=True)
     is_available = models.BooleanField(default=True)
     quantity = models.IntegerField(default=1000)
     deleted = models.BooleanField(default=False, null=True, blank=True)
@@ -74,10 +94,10 @@ class Variant(models.Model):
                                               null=True, blank=True)
 
     def __str__(self):
-        products_str = ", ".join(
-            [product.product_name for product in self.product.all()]
-        )
-        return f"{products_str} {self.ram} RAM, {self.internal_memory}  Memory"
+        product_name = self.product.product_name if self.product else '''
+        No Product'''
+
+        return f"{product_name} {self.ram} RAM, {self.internal_memory} Memory"
 
 
 class ProductImage(models.Model):
@@ -89,15 +109,6 @@ class ProductImage(models.Model):
     def __str__(self):
         return f"Image of {self.product.product_name}"
 
-
-# class CategoryOffers(models.Model):
-#     category_offer_name = models.CharField(max_length=100)
-#     discount = models.IntegerField(default=0)
-#     valid_from = models.DateTimeField()
-#     valid_to = models.DateTimeField()
-
-
-# to rate the varient
 
 class ReviewRating(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -17,13 +17,13 @@
                     <div class="row mb-3">
                         <label for="phoneNumber" class="col-sm-2 col-form-label">Phone Number</label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control" id="phoneNumber" value="{{ order.delivery_address.phone_number }}">
+                            <input type="text" class="form-control" id="phoneNumber" value="{{ order.delivery_address.phone_number }}" readonly>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <label for="grandTotal" class="col-sm-2 col-form-label">Amount</label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control" id="grandTotal" value="{{ razorpay_amount }}">
+                            <input type="text" class="form-control" id="grandTotal" value="{{ razorpay_amount }}" readonly>
                         </div>
                     </div>
                     <button type="button" id="pay-btn" class="btn btn-primary">Confirm Payment</button>

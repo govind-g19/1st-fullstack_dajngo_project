@@ -68,6 +68,8 @@
                                     {{ value.description }}
                                 {% endif %}
                             </td>
+                            <td>{{ value.modified_date }}</td>
+
                             <td>
                                 <a href='{% url "product_offers_list" %}' class=text-decoration-none>
                                     {% comment %} {% if not value.product_offer %}

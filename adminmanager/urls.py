@@ -94,9 +94,9 @@ urlpatterns = [
          views.undo_delete_variant,
          name='undo_delete_variant'),
 
-    path('add_varient/',
-         views.add_varient,
-         name='add_varient'),
+    path('add_variant/<int:product_id>/',
+         views.add_variant,
+         name='add_variant'),
 
     path('admin_view_review/<int:variant_id>/', views.admin_view_review,
          name='admin_view_review'),
@@ -132,7 +132,20 @@ urlpatterns = [
     path('delete_product_offer/<int:offer_id>/', views.delete_product_offer,
          name='delete_product_offer'),
     path('undo_delete_product_offer/<int:offer_id>/',
-         views.undo_delete_product_offer, name='undo_delete_product_offer')
+         views.undo_delete_product_offer, name='undo_delete_product_offer'),
+    # category offers
+    path('add_category_offer', views.add_category_offer,
+         name='add_category_offer'),
+    path('category_offers_list', views.category_offers_list,
+         name='category_offers_list'),
+    path('edit_category_offer/<int:offer_id>/', views.edit_category_offer,
+         name='edit_category_offer'),
+    path('delete_category_offer/<int:offer_id>/', views.delete_category_offer,
+         name='delete_category_offer'),
+    path('undo_delete_category_offer/<int:offer_id>/',
+         views.undo_delete_category_offer, name='undo_delete_category_offer')
+
+
 
 
 ]

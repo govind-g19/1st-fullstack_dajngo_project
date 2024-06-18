@@ -34,12 +34,12 @@
                       </tr>
                     </thead>
                     <tbody>
-                      {% for coupon, used in coupon_status %}
+                      {% for coupon in valid_coupons %}
                       <tr>
                           <td>{{ coupon.coupon_code }}</td>
                           <td>{{ coupon.discount }}</td>
                           <td>{{ coupon.valid_to }}</td>
-                          {% if used %}
+                          {% if coupon.is_used %}
                           <td class="text-danger">Used</td>
                           {% else %}
                           <td class="text-primary">Available</td>

@@ -54,12 +54,11 @@
         <div class="col-3 m-3 p-1 justify-content-between align-items-center " style="width: 18rem;">
             <div class="card rounded-4">
                 <div class="card-body">
-                    {% for product in variant.product.all %}
-                    <h5>{{ product.product_name }}</h5>
-                    <a href="{% url 'product_details' product.id %}?variant_id={{ variant.id }}" class="btn btn-outline-secondary rounded-4">
-                        <img src="{{ product.product_images.url }}" class="rounded-4"alt="Product Image" style="width: 180px; height: 200px;">
+                    <h5>{{ variant.product.product_name }}</h5>
+                    <a href="{% url 'product_details' variant.product.id %}?variant_id={{ variant.id }}" class="btn btn-outline-secondary rounded-4">
+                        <img src="{{ variant.product.product_images.url }}" class="rounded-4"alt="Product Image" style="width: 180px; height: 200px;">
                     </a>
-                    {% endfor %}
+                    
                     <p class="fw-medium">Ram: {{ variant.ram }}</p>
                     <p class="fw-medium">Internal Memory: {{ variant.internal_memory }}</p>
                     <p class="fw-medium">Final Price: Rs {{ variant.final_price }}</p>

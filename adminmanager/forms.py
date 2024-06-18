@@ -1,42 +1,66 @@
 from django import forms
 from .models import Variant, Product, ReviewRating, ProductOffers
+from .models import CategoryOffers
 from orders.models import Orders
 from django.core.exceptions import ValidationError
 
 
 class VariantForm(forms.ModelForm):
-    product = forms.ModelMultipleChoiceField(queryset=Product.objects.all())
-
     class Meta:
         model = Variant
-        fields = ['product', 'ram', 'internal_memory', 'final_price', 'is_available', 'quantity', 'low_stock_threshold', 'deleted']
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        product_id = kwargs.pop('product_id', None)
+        super().__init__(*args, **kwargs)
+        if product_id:
+            product = Product.objects.get(id=product_id)
+            self.fields['product'].queryset = Product.objects.filter(id=product_id)
+            self.fields['product'].initial = product
 
     def clean(self):
         cleaned_data = super().clean()
+        product = cleaned_data.get('product')
+        ram = cleaned_data.get('ram')
+        internal_memory = cleaned_data.get('internal_memory')
         final_price = cleaned_data.get('final_price')
         quantity = cleaned_data.get('quantity')
         low_stock_threshold = cleaned_data.get('low_stock_threshold')
 
-        if final_price is not None and final_price <= 0:
-            raise ValidationError('Final price cannot be below zero.')
+        # Check for duplicate variant
+        if product and ram and internal_memory:
+            existing_variant = Variant.objects.filter(
+                product=product,
+                ram=ram,
+                internal_memory=internal_memory
+            )
+            if self.instance and self.instance.pk:
+                existing_variant = existing_variant.exclude(pk=self.instance.pk)
+            if existing_variant.exists():
+                raise ValidationError('A variant with the same product, RAM, and internal memory already exists.')
 
-        if quantity is not None and quantity <= 0:
-            raise ValidationError('Quantity cannot be below zero.')
-        
-        if low_stock_threshold is not None and low_stock_threshold <0:
-            raise ValidationError("Low stock threshold can't be less than 0 ")
+        # Validate final_price
+        if final_price is not None and final_price < 0:
+            raise ValidationError('Final price cannot be less than zero.')
 
-        if low_stock_threshold is not None and quantity is not None and low_stock_threshold >= quantity:
-            raise ValidationError('Low stock threshold should be less than quantity.')
+        # Validate quantity
+        if quantity is not None and quantity < 0:
+            raise ValidationError('Quantity cannot be less than zero.')
+
+        # Validate low_stock_threshold
+        if low_stock_threshold is not None and low_stock_threshold < 0:
+            raise ValidationError("Low stock threshold can't be less than zero.")
+
+        if low_stock_threshold is not None and quantity is not None and low_stock_threshold > quantity:
+            raise ValidationError(
+                'Low stock threshold should be less than or equal to quantity.')
 
         return cleaned_data
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        products = self.cleaned_data['product']
         if commit:
             instance.save()
-            instance.product.set(products)
         return instance
 
 
@@ -113,5 +137,68 @@ class ProductOfferForm(forms.ModelForm):
             existing_offer = existing_offer.exclude(pk=self.instance.pk)
         if existing_offer.exists():
             self.add_error(None, "A similar offer already exists")
+
+        return cleaned_data
+
+
+class CategoryOfferform(forms.ModelForm):
+    class Meta:
+        model = CategoryOffers
+        fields = '__all__'
+        widgets = {
+            'category_offer': forms.TextInput(attrs={
+                'required': True,
+                'class': 'form-control'
+            }),
+            'discount': forms.NumberInput(attrs={
+                'required': True,
+                'class': 'form-control'
+            }),
+            'valid_from': forms.DateInput(attrs={
+                'required': True,
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'valid_to': forms.DateInput(attrs={
+                'required': True,
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'active': forms.CheckboxInput()
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        valid_from = cleaned_data.get('valid_from')
+        valid_to = cleaned_data.get('valid_to')
+        discount = cleaned_data.get('discount')
+        category_offer = cleaned_data.get('category_offer')
+
+        # Check if valid_from is not later than valid_to
+        if valid_from and valid_to:
+            if valid_from > valid_to:
+                self.add_error('valid_from', 'Valid from date should not be later than valid to date.')
+
+        # Validate discount range (0 to 100)
+        if discount is not None:
+            if discount < 0 or discount > 100:
+                self.add_error('discount', 'Discount should be between 0 and 100.')
+
+        # Validate category_offer contains only alphabetic characters
+        if category_offer:
+            if not category_offer.isalpha():
+                self.add_error('category_offer', 'Category offer name should only contain alphabetic characters.')
+
+        # Check for existing offers with overlapping date ranges and same category_offer
+        if valid_from and valid_to and category_offer:
+            existing_offer = CategoryOffers.objects.filter(
+                valid_from__lte=valid_to,
+                valid_to__gte=valid_from,
+                category_offer=category_offer
+            )
+            if self.instance and self.instance.pk:
+                existing_offer = existing_offer.exclude(pk=self.instance.pk)
+            if existing_offer.exists():
+                self.add_error(None, 'A similar offer already exists for this date range and category.')
 
         return cleaned_data

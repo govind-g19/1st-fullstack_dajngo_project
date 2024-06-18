@@ -10,10 +10,10 @@ from django.conf import settings
 @receiver(post_save, sender=Variant)
 def low_value_reminder(sender, instance, **kwargs):
     if instance.quantity <= instance.low_stock_threshold:
-        products_str = ", ".join([product.product_name for product in instance.product.all()])
-        subject = f"Low stock alert for {products_str}"
+        product_name = instance.product.product_name
+        subject = f"Low stock alert for {product_name}"
         message = (
-            f"The stock for {products_str} with RAM: {instance.ram} and ROM: {instance.internal_memory} "
+            f"The stock for {product_name} with RAM: {instance.ram} and ROM: {instance.internal_memory} "
             f"has dropped to {instance.quantity}. Please restock the product."
         )
         # Send the email

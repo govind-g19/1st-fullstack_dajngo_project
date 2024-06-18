@@ -20,108 +20,147 @@ def generate_cart_id():
 @login_required
 def add_to_cart(request, product_id):
     current_user = request.user
-    product = Product.objects.get(id=product_id)
+    product = get_object_or_404(Product, id=product_id)
 
-    if current_user.is_authenticated:
-        variant = Variant.objects.filter(
+    variant = Variant.objects.filter(
+        product=product,
+        ram=request.GET.get("ram"),
+        internal_memory=request.GET.get("internal_memory"),
+    ).first()
+
+    if not product.available or (variant and not variant.is_available) or not product.category.is_available:
+        messages.error(request, 'Out of stock')
+        return redirect('shop')
+
+    if variant and variant.is_available:
+        cart, created = Cart.objects.get_or_create(user=current_user)
+        cart_item, item_created = CartItem.objects.get_or_create(
+            user=current_user,
             product=product,
-            ram=request.GET.get("ram"),
-            internal_memory=request.GET.get("internal_memory"),
-        ).first()
+            variant=variant,
+            cart=cart,
+            defaults={"added_quantity": 1},
+        )
 
-        # to check the Availability
-        if not product.available or (variant and not variant.is_available):
-            messages.error(request, 'Out of stock')
-            return redirect('shop')
-        if variant and variant.is_available:
-            cart, created = Cart.objects.get_or_create(user=current_user)
-            cart_item, item_created = CartItem.objects.get_or_create(
-                user=current_user,
-                product=product,
-                variant=variant,
-                cart=cart,
-                defaults={"added_quantity": 1},
-            )
+        # Calculate total number of unique items in the cart
+        cart_items_count = CartItem.objects.filter(cart=cart).count()
+        # Calculate the total quantity of all items in the cart
+        total_cart_items = CartItem.objects.filter(cart=cart).aggregate(total_quantity=Sum('added_quantity'))['total_quantity']
+        total_cart_items = total_cart_items or 0
 
-            if not item_created:
-                if cart_item.added_quantity < variant.quantity:
-                    cart_item.added_quantity += 1
-                    cart_item.save()
-                    messages.success(request, "Product Added to Cart")
-                    return redirect("cart")
-                else:
-                    messages.warning(request, "quantity exceeds,not available")
-                    return redirect("cart")
+        if cart_items_count >= 5 or total_cart_items >= 5:
+            messages.error(request, "You can only add up to 5 items to your cart.")
+            return redirect('cart')
+
+        if not item_created:
+            if cart_item.added_quantity + 1 > 5 or total_cart_items + 1 > 5:
+                messages.error(request, 'You can only add up to 5 items of this product to your cart.')
+                return redirect('cart')
+            if cart_item.added_quantity < variant.quantity:
+                cart_item.added_quantity += 1
+                cart_item.save()
+                messages.success(request, "Product added to cart")
+                return redirect("cart")
             else:
-                messages.success(request, "Product Added to Cart")
+                messages.warning(request, "Quantity exceeds available stock")
                 return redirect("cart")
         else:
-            messages.error(request, "Selected variant is not available.")
-            return redirect("product_details")
+            messages.success(request, "Product added to cart")
+            return redirect("cart")
     else:
-        cart, created = Cart.objects.get_or_create(
-            cart_id=generate_cart_id()(request))
-        variant = Variant.objects.filter(
-            product=product,
-            ram=request.GET.get("ram"),
-            internal_memory=request.GET.get("internal_memory"),
-        ).first()
-        if variant and variant.is_available:
-            cart_item, item_created = CartItem.objects.get_or_create(
-                product=product,
-                variant=variant,
-                cart=cart,
-                defaults={"added_quantity": 1},
-            )
+        messages.error(request, "Selected variant is not available.")
+        return redirect("product_details", product_id=product_id)
 
-            if not item_created:
-                if cart_item.added_quantity < variant.quantity:
-                    cart_item.added_quantity += 1
-                    variant.quantity -= 1
-                    cart_item.save()
-                    messages.success(request, "Product Added to Cart")
-                    return redirect("cart")
-                else:
-                    messages.warning(request, "this quantity is not available")
-            else:
-                messages.success(request, "Product Added to Cart")
-                return redirect("product_details")
-        else:
-            messages.error(request, "Selected variant is not available.")
-            return redirect("product_details")
 
+def product_category_availability(request, product_id):
+    prodduct = get_object_or_404(Product, id=product_id)
+    return True if prodduct.available and prodduct.category.is_available else False
 
 @login_required
 def cart_view(request, total=0, quantity=0, cart_items=None):
     try:
         tax = 0
-        shipping = 0
         grand_total = 0
+        total_discount = 0  # Total discount for all items
+        cart_item_details = []  # List to hold details for each cart item
+
         if request.user.is_authenticated:
-            cart_items = CartItem.objects.filter(user=request.user,
-                                                 is_active=True)
+            cart_items = CartItem.objects.filter(user=request.user, is_active=True)
         else:
             cart = Cart.objects.get(cart_id=generate_cart_id()(request))
             cart_items = CartItem.objects.filter(cart=cart, is_active=True)
+
         for cart_item in cart_items:
-            total += cart_item.variant.final_price * cart_item.added_quantity
+            if not product_category_availability(request, cart_item.variant.product.id):
+                messages.error(request, f'The product "{cart_item.product.product_name}" is no longer available.')
+                cart_item.delete()
+                continue
+
+            current_time = timezone.now()
+            offer_price, combined_discount, product_offer, category_offer = offer_calculaton(cart_item.variant.id, current_time)
+
+            
+            item_total_price = offer_price * cart_item.added_quantity if offer_price else cart_item.variant.final_price * cart_item.added_quantity
+            item_discount = (cart_item.variant.final_price - offer_price) * cart_item.added_quantity if offer_price else 0
+
+            total += item_total_price
+            total_discount += item_discount
             quantity += cart_item.added_quantity
+
+            cart_item_details.append({
+                'cart_item': cart_item,
+                'offer_price': offer_price,
+                'sub_total': item_total_price,
+                'combined_discount': combined_discount,
+            })
+
         tax = (18 * total) / 100
-        shipping = 0
-        grand_total = total + tax + shipping
+        grand_total = total + tax
     except Cart.DoesNotExist:
         pass
     except CartItem.DoesNotExist:
         pass
+
     context = {
         "total": total,
         "quantity": quantity,
-        "cart_items": cart_items,
+        "cart_item_details": cart_item_details,
         "tax": tax,
-        "shipping": shipping,
         "grand_total": grand_total,
+        'total_discount': total_discount
     }
     return render(request, "main/add_to_cart.html", context)
+
+
+def offer_calculaton(variant_id, current_time):
+    variant = get_object_or_404(Variant, id=variant_id)
+    combined_discount = 0
+    offer_price = 0
+    product_offer = 0
+    category_offer = 0
+    final_price = variant.final_price
+
+    if (final_price and
+            variant.product.product_offer and
+            variant.product.product_offer.active and
+            variant.product.product_offer.valid_from <= current_time <= variant.product.product_offer.valid_to):
+        product_offer = variant.product.product_offer.discount
+        
+
+    if (final_price and
+            variant.product.category.category_offer and
+            variant.product.category.category_offer.active and
+            variant.product.category.category_offer.valid_from <= current_time <= variant.product.category.category_offer.valid_to):
+        category_offer = variant.product.category.category_offer.discount
+
+    combined_discount = product_offer + category_offer
+
+    if combined_discount > 0:
+        offer_price = final_price - (final_price * combined_discount / 100)
+    else:
+        offer_price = final_price
+
+    return offer_price, combined_discount, product_offer, category_offer
 
 
 @login_required
@@ -147,6 +186,7 @@ def reduce_quantity(request, cart_item_id):
 def add_quantity(request, cart_item_id):
     try:
         cart_item = CartItem.objects.get(id=cart_item_id)
+        cart = cart_item.cart
         product_id = request.GET.get('product_id')
 
         if product_id:
@@ -156,6 +196,12 @@ def add_quantity(request, cart_item_id):
             if not product.available:
                 messages.error(request, 'The selected product is out of stock.')
                 return redirect("cart")
+        # to chack the quantity
+        total_cart_items = CartItem.objects.filter(cart=cart).aggregate(total_quantity=Sum('added_quantity'))['total_quantity']
+        cart_items_count = CartItem.objects.filter(cart=cart).count()
+        if cart_items_count > 5 or cart_item.added_quantity > 5 or total_cart_items >5:
+            messages.error(request, "You can only add up to 6 items to your cart.")
+            return redirect('cart')
 
         if cart_item.added_quantity < cart_item.variant.quantity:
             cart_item.added_quantity += 1
@@ -194,66 +240,72 @@ def check_out(request):
     grand_total = 0
     cart_items = None
     discount_amount = 0
-
-    # Retrieve the applied coupon code from the session
-    applied_coupon_code = request.session.get("applied_coupon_code")
+    total_discount = 0
+    offer_price = 0
 
     try:
         if request.user.is_authenticated:
-            cart_items = CartItem.objects.filter(user=request.user,
-                                                 is_active=True)
+            cart_items = CartItem.objects.filter(user=request.user, is_active=True)
             cart = Cart.objects.get(user=request.user)
         else:
             cart = Cart.objects.get(cart_id=generate_cart_id(request))
             cart_items = CartItem.objects.filter(cart=cart, is_active=True)
+
         for cart_item in cart_items:
-
-            if not cart_item.product.available or not cart_item.variant.is_available:
-                messages.error(request, f'The product "{cart_item.product.product_name}" is out of stock.')
+            if not product_category_availability(request, cart_item.variant.product.id):
+                messages.error(request, f'The product "{cart_item.variant.product.product_name}" is no longer available.')
+                cart_item.delete()
                 return redirect("cart")
+
+            if not cart_item.variant.is_available:
+                messages.error(request, f'The product "{cart_item.variant.product.product_name}" is out of stock.')
+                return redirect("cart")
+
             if cart_item.added_quantity > cart_item.variant.quantity:
-                messages.error(
-                    request, f'''Product variant
-                    {cart_item.variant} is out of stock.'''
-                )
+                messages.error(request, f'Product variant {cart_item.variant} is out of stock.')
                 return redirect("cart")
 
-            total += cart_item.variant.final_price * cart_item.added_quantity
+            # Check for offers
+            current_time = timezone.now()
+            offer_price, combined_discount, product_offer, category_offer = offer_calculaton(cart_item.variant.id, current_time)
+            print('combined_discount', cart_item.product, offer_price, combined_discount)
+
+            cart_item.offer_price = offer_price
+            cart_item.product_offer = product_offer
+            cart_item.category_offer = category_offer
+            
+            if offer_price:
+                print(offer_price)
+                item_total_price = offer_price * cart_item.added_quantity
+                item_discount = (cart_item.variant.final_price - offer_price) * cart_item.added_quantity
+            else:
+                item_total_price = cart_item.variant.final_price * cart_item.added_quantity
+                item_discount = 0
+
+            total += item_total_price
+            total_discount += item_discount
             quantity += cart_item.added_quantity
 
         tax = (18 * total) / 100
 
-        default_address = Address.objects.filter(
-            user=request.user, is_primary=True
-        ).first()
-        if default_address:
-
-            if default_address.state.lower() == "kerala":
-                shipping = 0
-            else:
-                shipping = 500
+        default_address = Address.objects.filter(user=request.user, is_primary=True).first()
+        if default_address and default_address.state.lower() == "kerala":
+            shipping = 0
         else:
-            return redirect("page_direct")
+            shipping = 500
 
-        # Calculate discounted total after applying coupons
+        applied_coupon_code = request.session.get("applied_coupon_code")
         if applied_coupon_code:
             applied_coupons = UserCoupons.objects.filter(
-                user=request.user, coupon__coupon_code=applied_coupon_code,
-                is_used=True
+                user=request.user, coupon__coupon_code=applied_coupon_code, is_used=True
             )
-            discount_amount = (
-                applied_coupons.aggregate(
-                    discount_amount=Sum("coupon__discount"))[
-                    "discount_amount"
-                ]
-                or 0
-            )
+            discount_amount = applied_coupons.aggregate(discount_amount=Sum("coupon__discount"))["discount_amount"] or 0
 
         discount = total - discount_amount
 
+        discount_amount += total_discount
+
         grand_total = discount + tax + shipping
-        if "applied_coupon_code" in request.session:
-            del request.session["applied_coupon_code"]
 
     except (Cart.DoesNotExist, CartItem.DoesNotExist):
         pass
@@ -262,22 +314,15 @@ def check_out(request):
     address_list = Address.objects.filter(user=request.user)
     default_address = address_list.filter(is_primary=True).first()
 
-    # Fetch all valid coupons
-    valid_coupons = Coupons.objects.filter(
-        valid_from__lte=current_datetime, valid_to__gte=current_datetime
-    )
+    valid_coupons = Coupons.objects.filter(valid_from__lte=current_datetime, valid_to__gte=current_datetime)
 
-    # Annotate valid coupons with the is_used status for the current user
     valid_coupons = valid_coupons.annotate(
         is_used=Case(
-            When(usercoupons__user=request.user, usercoupons__is_used=True,
-                 then=True),
+            When(usercoupons__user=request.user, usercoupons__is_used=True, then=True),
             default=False,
             output_field=BooleanField(),
         )
     )
-
-    # Clear the applied coupon code from the session if present
 
     context = {
         "total": total,
@@ -292,14 +337,22 @@ def check_out(request):
         "valid_coupons": valid_coupons,
         "discount_amount": discount_amount,
         "redirect_page": "check_out",
+        'total_discount': total_discount
     }
     return render(request, "main/check_out.html", context)
+
 
 @login_required
 def apply_coupon(request):
     if request.method == "POST":
         coupon_code = request.POST.get("coupon_code")
-        cartitem = CartItem.objects.filter(user=request.user, is_active=True).first()
+
+        # Check if a coupon is already applied
+        if request.session.get("applied_coupon_code"):
+            print(request.session.get("applied_coupon_code"))
+            messages.error(request, "A coupon is already applied. Only one coupon can be used at a time.")
+            return redirect("check_out")
+
         # Fetch the coupon or return 404 if not found
         coupon = get_object_or_404(Coupons, coupon_code=coupon_code)
 
@@ -314,22 +367,25 @@ def apply_coupon(request):
             return redirect("check_out")
 
         # Check if the order total meets the minimum amount requirement
-        if cartitem.variant.final_price < coupon.minimum_amount:
+        cart_total = CartItem.objects.filter(user=request.user, is_active=True).aggregate(total=Sum('variant__final_price'))['total'] or 0
+        if cart_total < coupon.minimum_amount:
             messages.error(request, "Minimum amount requirement not met")
             return redirect("check_out")
 
-        # Check if the user has already used this coupon
-        user_coupon, created = UserCoupons.objects.get_or_create(user=request.user, coupon=coupon)
-        if user_coupon.is_used:
-            messages.error(request, "Coupon has already been used")
+        # Check if the coupon is within the valid time range
+        current_time = timezone.now()
+        if not (coupon.valid_from <= current_time <= coupon.valid_to):
+            messages.error(request, "Coupon is not within the valid time range")
             return redirect("check_out")
 
-        # Mark the coupon as used
+        # Apply the coupon
+        user_coupon, created = UserCoupons.objects.get_or_create(user=request.user, coupon=coupon)
         user_coupon.is_used = True
         user_coupon.save()
 
         # Store the applied coupon code in the session
         request.session["applied_coupon_code"] = coupon_code
+        request.session["applied_coupon_discount"] = coupon.discount
         messages.success(request, "Coupon applied successfully")
 
     return redirect("check_out")

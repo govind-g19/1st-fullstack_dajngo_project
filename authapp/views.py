@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout as vkart_loogout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-
+from django.db.models import Sum
 # active user
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -13,7 +13,10 @@ from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
 from django.utils.encoding import DjangoUnicodeDecodeError
 from .models import Address, Coupons, UserCoupons, Wallet, Transaction
-from .models import WishList
+from .models import WishList, Referral
+# for the copon 
+from django.db.models import Case, When, BooleanField
+from django.utils import timezone
 from adminmanager.models import Product, Variant
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
@@ -52,6 +55,7 @@ def signup(request):
         last_name = request.POST.get("last_name")
         password = request.POST.get("pass1")
         confirm_password = request.POST.get("pass2")
+        referral_code = request.POST.get("referral_code")
 
         # Ensure passwords match
         if password != confirm_password:
@@ -98,11 +102,11 @@ def signup(request):
             messages.warning(request,
                              "Username can only contain letters and numbers.")
             return render(request, "auth/signup.html")
-        
+
         if not first_name.isalpha():
             messages.warning(request, "First name can only contain letters.")
             return render(request, "auth/signup.html")
-        
+
         if not last_name.isalpha():
             messages.warning(request, "Last name can only contain letters.")
             return render(request, "auth/signup.html")
@@ -128,6 +132,45 @@ def signup(request):
         # Save the user to the database
         user.is_active = False
         user.save()
+
+        # Referral verification 
+        if referral_code:
+            try:
+                referral = Referral.objects.get(referral_code=referral_code)
+                print(referral)
+                referred_by = referral.user
+                print(referred_by)
+
+                if referred_by:
+                    if user != referred_by and referred_by.is_active:
+                        # Reward referred_by with $100
+                        referred_by_wallet, created = Wallet.objects.get_or_create(user=referred_by)
+                        referred_by_wallet.balance += 100
+                        referred_by_wallet.save()
+                        Transaction.objects.create(wallet=referred_by_wallet,
+                                                transaction_type='credit',
+                                                amount=100)
+
+                        # Reward user with $50
+                        user_wallet, created = Wallet.objects.get_or_create(user=user)
+                        user_wallet.balance += 50
+                        user_wallet.save()
+                        Transaction.objects.create(wallet=user_wallet,
+                                                transaction_type='credit',
+                                                amount=50)
+
+                        # Create Referral entry
+                        Referral.objects.create(user=user, referred_by=referred_by)
+                    else:
+                        messages.error(request, 'Self Referral is not allowed.')
+                else:
+                    messages.error(request, 'Invalid Referral Code.')
+                    return render(request, "auth/signup.html")
+
+            except Referral.DoesNotExist:
+                messages.error(request, 'Invalid Referral Code.')
+                return render(request, "auth/signup.html")
+
         current_site = get_current_site(request)
         email_subject = "Activate Your Account"
         message = render_to_string(
@@ -146,6 +189,7 @@ def signup(request):
             [email],
         )
         email_message.send()
+
         messages.info(request, "For activation, click the link in your email.")
         return redirect("/auth/login")
 
@@ -299,6 +343,7 @@ def loogout(request):
 # user profile
 def view_profile(request):
     current_user = request.user
+    referral = Referral.objects.get(user=current_user)
     addresses = Address.objects.filter(user=current_user,
                                        is_primary=True).first()
     address_list = Address.objects.filter(user=current_user)
@@ -314,7 +359,8 @@ def view_profile(request):
         'current_user': current_user,
         'addresses': addresses,
         'address_list': address_list,
-        'coupon_status': coupon_status
+        'coupon_status': coupon_status,
+        'referral': referral,
     }
     return render(request, 'auth/view_profile.html', context)
 
@@ -455,17 +501,19 @@ def change_password(request):
 
 # View coupon
 def user_view_coupons(request):
-    coupons = Coupons.objects.all()
+    current_datetime = timezone.now()
 
-    # Check if each coupon is used by the current user
-    coupon_status = []
-    for coupon in coupons:
-        used = UserCoupons.objects.filter(coupon=coupon, is_used=True).exists()
-        coupon_status.append((coupon, used))
+    # Query to fetch valid coupons and annotate with is_used status
+    valid_coupons = Coupons.objects.filter(valid_from__lte=current_datetime, valid_to__gte=current_datetime).annotate(
+        is_used=Case(
+            When(usercoupons__user=request.user, usercoupons__is_used=True, then=True),
+            default=False,
+            output_field=BooleanField(),
+        )
+    )
 
     context = {
-
-        'coupon_status': coupon_status
+        'valid_coupons': valid_coupons,
     }
     return render(request, 'auth/user_view_coupons.html', context)
 
@@ -603,14 +651,20 @@ def view_wishlist(request):
 @login_required
 def add_to_cart_from_wishlist(request, wishlist_item_id):
     current_user = request.user
-    wishlist_item = get_object_or_404(WishList,
-                                      id=wishlist_item_id,
-                                      user=current_user)
+    wishlist_item = get_object_or_404(WishList, id=wishlist_item_id, user=current_user)
     product = wishlist_item.product
     variant = wishlist_item.variant
 
     if variant.is_available and product.available and variant.quantity > 0:
         cart, created = Cart.objects.get_or_create(user=current_user)
+        cart_items_count = CartItem.objects.filter(cart=cart).count()
+        total_cart_items = CartItem.objects.filter(cart=cart).aggregate(total_quantity=Sum('added_quantity'))['total_quantity']
+        total_cart_items = total_cart_items or 0
+
+        if cart_items_count >= 5 or total_cart_items >= 5:
+            messages.error(request, "You can only add up to 5 items to your cart.")
+            return redirect('cart')
+
         cart_item, item_created = CartItem.objects.get_or_create(
             user=current_user,
             product=product,
@@ -621,13 +675,14 @@ def add_to_cart_from_wishlist(request, wishlist_item_id):
 
         if not item_created:
             if cart_item.added_quantity < variant.quantity:
+                if cart_item.added_quantity + 1 > 5 or total_cart_items + 1 > 5:
+                    messages.error(request, "You can only add up to 5 items to your cart.")
+                    return redirect('cart')
                 cart_item.added_quantity += 1
                 cart_item.save()
                 # Remove the item from the wishlist after adding to the cart
                 wishlist_item.delete()
-                messages.success(request,
-                                 '''Product added to cart and
-                                   removed from wishlist''')
+                messages.success(request, "Product added to cart and removed from wishlist")
                 return redirect("cart")
             else:
                 messages.warning(request, "Quantity exceeds available stock")
@@ -635,16 +690,15 @@ def add_to_cart_from_wishlist(request, wishlist_item_id):
         else:
             # Remove the item from the wishlist after adding to the cart
             wishlist_item.delete()
-            messages.success(request,
-                             '''Product added to cart
-                              and removed from wishlist''')
+            messages.success(request, "Product added to cart and removed from wishlist")
             return redirect("cart")
     else:
         if not variant.is_available or variant.quantity <= 0:
             messages.error(request, "Selected variant is not available.")
-        if not product.is_available:
+        if not product.available:
             messages.error(request, "Product is not available.")
         return redirect("wishlist")
+
 
 
 @login_required
@@ -654,8 +708,15 @@ def add_all_to_cart(request):
 
     if wishlist_items:
         cart, created = Cart.objects.get_or_create(user=current_user)
+        cart_items_count = CartItem.objects.filter(cart=cart).count()
+        total_cart_items = CartItem.objects.filter(cart=cart).aggregate(total_quantity=Sum('added_quantity'))['total_quantity']
+        total_cart_items = total_cart_items or 0
 
         for wishlist_item in wishlist_items:
+            if cart_items_count >= 5 or total_cart_items >= 5:
+                messages.error(request, "You can only add up to 5 items to your cart.")
+                break
+
             product = wishlist_item.product
             variant = wishlist_item.variant
 
@@ -667,19 +728,25 @@ def add_all_to_cart(request):
                     cart=cart,
                     defaults={"added_quantity": 1},
                 )
+                messages.success(request, "All available items added to cart")
 
                 if not item_created:
                     if cart_item.added_quantity < variant.quantity:
+                        if cart_item.added_quantity + 1 > 5 or total_cart_items + 1 > 5:
+                            messages.error(request, f"You can only add up to 5 items to your cart.")
+                            break
                         cart_item.added_quantity += 1
                         cart_item.save()
+                        messages.success(request, "All available items added to cart")
                     else:
                         messages.warning(request, f"Quantity for {product.product_name} exceeds available stock")
                         continue
 
-                # Remove the item from the wishlist after adding to the cart
-                wishlist_item.delete()
+                cart_items_count = CartItem.objects.filter(cart=cart).count()
+                total_cart_items = CartItem.objects.filter(cart=cart).aggregate(total_quantity=Sum('added_quantity'))['total_quantity']
+                total_cart_items = total_cart_items or 0
 
-        messages.success(request, "All available items added to cart")
+                wishlist_item.delete()
     else:
         messages.warning(request, "No items in your wishlist")
 

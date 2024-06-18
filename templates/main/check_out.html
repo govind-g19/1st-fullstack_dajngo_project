@@ -15,9 +15,8 @@
             data-toggle="tooltip" data-placement="top" title="Close all">
             <span class="material-symbols-outlined">close</span>
         </a>
-    </div>
-    
-<br> 
+      </div>
+      <br> 
       <div class="col-7">
         <!-- Cart Items -->
         <div class="col-md-12">
@@ -30,6 +29,7 @@
                   <th scope="col" class="fw-bolder" style="width: 10%;">Image</th>
                   <th scope="col" class="fw-bolder" style="width: 10%;">Quantity</th>
                   <th scope="col" class="fw-bolder" style="width: 10%;">Price</th>
+                  <th scope="col" class="fw-bolder" style="width: 10%;">Offer Price</th>
                 </tr>
               </thead>
               <tbody>
@@ -39,7 +39,12 @@
                   <td>{{ cart_item.variant }}</td>
                   <td><img src="{{ cart_item.product.product_images.url }}" alt="Product Image" style="width: 50px;"></td>
                   <td>{{ cart_item.added_quantity }}</td>
-                  <td>₹{{ cart_item.sub_total }}</td>
+                  <td>₹{{ cart_item.variant.final_price }}</td>
+                  {% if cart_item.offer_price %}
+                    <td>₹{{ cart_item.offer_price }}</td>
+                  {% else %}
+                    <td>N/A</td>
+                  {% endif %}
                 </tr>
                 {% endfor %}
               </tbody>
@@ -78,18 +83,17 @@
                   <div class="card mb-2">
                     <div class="card-body">
                       <h5 class="card-title">{{ address.first_name }} {{ address.second_name }}</h5>
-                      <p class="card-text">{{ address.house_address }}, {{ address.city }},, {{ address.state }} {{ address.pin_code }}</p>
+                      <p class="card-text">{{ address.house_address }}, {{ address.city }}, {{ address.state }} {{ address.pin_code }}</p>
                       <p class="card-text">Phone: {{ address.phone_number }}</p>
                       <p class="card-text">Landmark: {{ address.land_mark }}</p>
                       <div class="btn-group" role="group" aria-label="Address Actions">
                         <a href="{% url 'edit_address' address_id=address.id %}?source=checkout" class="text-warning ms-2">
                           <span class="material-symbols-outlined">edit</span>
-                      </a>
-                        {% comment %} <a href="{% url 'delete_address' address_id=address.id %}" class="text-danger ms-3" ><span class="material-symbols-outlined">delete</span></a> {% endcomment %}
+                        </a>
                         {% if address.is_primary %}
-                        <a class="text-success  ms-3" ><span class="material-symbols-outlined">radio_button_checked</span></a>
+                          <a class="text-success  ms-3"><span class="material-symbols-outlined">radio_button_checked</span></a>
                         {% else %}
-                        <a href="{% url 'default_address' address_id=address.id %}" class="text-dark ms-3" ><span class="material-symbols-outlined">radio_button_checked</span></a>
+                          <a href="{% url 'default_address' address_id=address.id %}" class="text-dark ms-3"><span class="material-symbols-outlined">radio_button_checked</span></a>
                         {% endif %}
                       </div>
                     </div>
@@ -143,10 +147,10 @@
                     <td class="p-2">{{ valid_coupon.minimum_amount }}</td>
                     <td class="p-2">{{ valid_coupon.discount }}</td>
                     <td class="p-2">{{ valid_coupon.valid_to }}</td>
-                    {% if valid_coupon.is_used  %}
-                    <td class="p-2 text-danger">Used</td>
+                    {% if valid_coupon.is_used %}
+                      <td class="p-2 text-danger">Used</td>
                     {% else %}
-                    <td class="p-2 text-success">Not Used</td>
+                      <td class="p-2 text-success">Not Used</td>
                     {% endif %}
                   </tr>
                   {% endfor %}
@@ -197,45 +201,52 @@
                 <div>
                   <div class="row">
                     <div class="col-12">
-                        <form id="placeOrderForm" method="post" action="{% url 'place_order' %}">
-                            {% csrf_token %}
-                            <div class="row">
-                                <div class="col-12">
-                                    <label class="visually-hidden" for="inlineFormSelectPref" required>Payment method</label>
-                                    <select class="form-select" id="inlineFormSelectPref" name="payment_method" required>
-                                        <option value="COD">Cash on Delivery</option>
-                                        <option value="Razorpay">Razorpay</option>
-                                        <option value="wallet">Wallet</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <input type="hidden" name="subtotal" value="{{ total }}">
-                            <input type="hidden" name="discount_given" value="{{ discount_amount }}">
-                            <input type="hidden" name="shipping" value="{{ shipping }}">
-                            <input type="hidden" name="tax" value="{{ tax }}">
-                            <input type="hidden" name="grand_total" value="{{ grand_total }}">
-                            <input type="hidden" name="cart_id" value="{{ cart.id }}">
-                            <div class="row mt-3">
-                                <div class="col d-flex justify-content-between">
-                                    <button type="submit" class="btn btn-outline-secondary">Place Order</button>
-                                    <a href="{% url 'shop' %}" class="btn btn-outline-secondary">Continue Shopping</a>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                
+                      <form id="placeOrderForm" method="post" action="{% url 'place_order' %}">
+                        {% csrf_token %}
+                        <div class="row">
+                          <div class="col-12">
+                            <label class="visually-hidden" for="inlineFormSelectPref" required>Payment method</label>
+                            <select class="form-select" id="inlineFormSelectPref" name="payment_method" required>
+                              <option value="COD">Cash on Delivery</option>
+                              <option value="Razorpay">Razorpay</option>
+                              <option value="wallet">Wallet</option>
+                            </select>
+                          </div>
+                        </div>
+                        <input type="hidden" name="subtotal" value="{{ total }}">
+                        <input type="hidden" name="total_discount_amount" value="{{ discount_amount }}">
+                        <input type="hidden" name="offer_discount" value="{{ total_discount }}">
+                        <input type="hidden" name="shipping" value="{{ shipping }}">
+                        <input type="hidden" name="tax" value="{{ tax }}">
+                        <input type="hidden" name="tax" value="{{ tax }}">
+                        <input type="hidden" name="grand_total" value="{{ grand_total }}">
+                        <input type="hidden" name="cart_id" value="{{ cart.id }}">
 
+                        {% for cart_item in cart_items %}
+                        <input type="hidden" name="product_offer_{{ cart_item.id }}" value="{{ cart_item.product_offer }}">
+                        <input type="hidden" name="category_offer_{{ cart_item.id }}" value="{{ cart_item.category_offer }}">
+                        {% endfor %}
+
+                        <div class="row mt-3">
+                          <div class="col d-flex justify-content-between">
+                            <button type="submit" class="btn btn-outline-secondary">Place Order</button>
+                            <a href="{% url 'shop' %}" class="btn btn-outline-secondary">Continue Shopping</a>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
         <div class="col-12">
           {% for message in messages %}
-            <div class="alert alert-{{message.tags}} alert-dismissible fade show" role="alert">
-              <strong></strong> {{message}}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <strong></strong> {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
           {% endfor %}
         </div>
       </div>

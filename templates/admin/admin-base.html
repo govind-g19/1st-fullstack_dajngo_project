@@ -58,9 +58,6 @@
                             <button class="btn btn-icon btn-aside-minimize"> <i class="text-muted material-icons md-menu_open"></i> </button>
                         </div>
                     </div>
-
-
-                    
                     <nav >
                         <ul class="menu-aside">
                             <li class="menu-item has-submenu">
@@ -78,9 +75,10 @@
                                     <span class="text">Offers</span>
                                 </a>
                                 <div class="submenu "style="color: #000;">
-                            
+                                    <a href="{% url 'add_category_offer' %}" class=" text-dark ">Add Category Offers</a>
+                                    <a href="{% url 'category_offers_list' %}" class=" text-dark ">Category offers</a>
                                     <a href="{% url 'add_product_offer' %}" class=" text-dark ">Add Products Offers</a>
-                                    <a href="{% url 'product_offers_list' %}" class=" text-dark ">view Product offers</a>
+                                    <a href="{% url 'product_offers_list' %}" class=" text-dark ">Product offers</a>
                                         {% comment %} {% url 'add_varients' %} {% endcomment %}
                                 </div>
                             </li>
@@ -100,7 +98,7 @@
                                 <div class="submenu "style="color: #000;">
                                     <a href="{% url 'product_list' %}" class=" text-dark "> <span class="text">Product List</span></a>
                                     <a href="{% url 'add_product' %}" class=" text-dark ">Add Products</a>
-                                    <a href="{% url 'add_varient' %}" class=" text-dark ">Add varients</a>
+                                    {% comment %} <a href="{% url 'add_varient' %}" class=" text-dark ">Add varients</a> {% endcomment %}
                                         {% comment %} {% url 'add_varients' %} {% endcomment %}
                                 </div>
                             </li>

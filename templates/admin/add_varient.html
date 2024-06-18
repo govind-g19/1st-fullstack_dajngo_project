@@ -4,7 +4,7 @@
 {% load static %}
 
 {% block pageheader %}
-<h2 class="page-font">Add Varients </h2>
+<h2 class="page-font">Add Varients for {{products.product_name}} phone</h2>
 {% endblock pageheader %}
 
 {% block content %}
@@ -34,12 +34,11 @@
 
             
                         <div class="mb-2">
-                            <label for="id_product" class="form-label">Product</label>
-                            <select class="form-select" name="product" required>
-                                {% for product in products %}
-                                <option value="{{ product.id }}">{{ product.product_name }}</option>
-                                {% endfor %}
-                            </select>
+                            <div class="mb-2">
+                                <label for="id_product" class="form-label">Product</label>
+                                <input type="text" class="form-control" name="product" value="{{products.product_name}}" disabled >
+                            </div>
+                            
                         </div>
             
                         <div class="mb-2">
@@ -76,7 +75,7 @@
                         </div>
                         <div class="mb-2">
                             <label for="quantity" class="form-label">low_stock_threshold</label>
-                            <input type="number" class="form-control" name="low_stock_threshold" value="1000" required>
+                            <input type="number" class="form-control" name="low_stock_threshold" value="100" required>
                         </div>
                         
                         <button type="submit" class="btn btn-secondary mb-2">Submit</button>
