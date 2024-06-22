@@ -39,7 +39,8 @@
                           <td>{{ coupon.coupon_code }}</td>
                           <td>{{ coupon.discount }}</td>
                           <td>{{ coupon.valid_to }}</td>
-                          {% if coupon.is_used %}
+
+                          {% if coupon.id in used_coupons %}
                           <td class="text-danger">Used</td>
                           {% else %}
                           <td class="text-primary">Available</td>

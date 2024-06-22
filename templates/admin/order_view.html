@@ -72,7 +72,7 @@
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title fs-5" id="exampleModalLabel{{ order.id }}">{{ order.status }}</h5>
+                                    <h5 class="modal-title fs-5" id="exampleModalLabel{{ order.id }}"> {{order.order_id}} is {{ order.status }}</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
@@ -101,7 +101,7 @@
                      {% if  order.status != "Cancelled" and order.status != 'Delivered' and order.status != 'Returned' %}
                      <!-- Button trigger modal -->
                     <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-                   Cancelled
+                   Cancel
                     </button>
 
                     <!-- Modal -->
@@ -133,12 +133,34 @@
                 </td>
                 
             </tr>
-            <!-- Modal -->
 
-            
             {% endfor %}
         
         </tbody>
     </table>
+                                <!-- Pagination controls -->
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination">
+                                        {% if orders.has_previous %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ orders.previous_page_number }}" aria-label="Previous">
+                                                    <span aria-hidden="true">&laquo;</span>
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                        {% for num in orders.paginator.page_range %}
+                                            <li class="page-item {% if orders.number == num %} active {% endif %}">
+                                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                            </li>
+                                        {% endfor %}
+                                        {% if orders.has_next %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ orders.next_page_number }}" aria-label="Next">
+                                                    <span aria-hidden="true">&raquo;</span>
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
 </div>
 {% endblock content %}

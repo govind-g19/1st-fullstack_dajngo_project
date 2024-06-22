@@ -24,11 +24,14 @@ def index(request):
     search_query = request.GET.get('q')
     if search_query:
         # Search in both product name and description using OR condition
-        variants = variants.filter(
+        search_variant = variants.filter(
             Q(product__product_name__icontains=search_query) |
             Q(product__description__icontains=search_query) |
             Q(product__category__category_name__icontains=search_query)
         )
+        if search_variant:
+            variants = search_variant
+
     context = {
         'variants': variants
     }
@@ -38,18 +41,27 @@ def index(request):
 def shop(request):
     # Retrieve all categories
     categories = Category.objects.all()
+    variants = Variant.objects.all()
 
     # Retrieve filter values from request.GET
     ram_filter = request.GET.get('ram')
     rom_filter = request.GET.get('rom')
     category_filter = request.GET.get('category_id')
     search_query = request.GET.get('q')
+    # Apply search if a query is provided
+    if search_query:
+        search_variant = variants.filter(
+            Q(product__product_name__icontains=search_query) |
+            Q(product__description__icontains=search_query) |
+            Q(product__category__category_name__icontains=search_query)
+        )
+        if search_variant:
+            variants = search_variant
 
     # Retrieve sorting criteria from the request
     sort_by = request.GET.get('sort_by')
 
     # Initialize variants queryset
-    variants = Variant.objects.all()
 
     # Apply filters if provided
     if ram_filter:
@@ -58,18 +70,7 @@ def shop(request):
         variants = variants.filter(internal_memory=rom_filter)
     if category_filter:
         variants = variants.filter(product__category__id=category_filter)
-    # Apply search if a query is provided
-    if search_query:
-        variants = variants.filter(
-            Q(product__product_name__icontains=search_query) |
-            Q(product__description__icontains=search_query) |
-            Q(product__product_offer__product_offer__icontains=search_query) |
-            Q(product__product_offer__discount__icontains=search_query) |
-            Q(product__category__category_name__icontains=search_query) |
-            Q(product__category__category_offer__category_offer__icontains=search_query)|
-            Q(product__category__category_offer__discount__icontains=search_query)
-
-        )
+    
 
     # Apply sorting if provided
     if sort_by == 'name_asc':
@@ -84,24 +85,32 @@ def shop(request):
     for variant in variants:
         final_price = variant.final_price
         combined_discount = 0
+        variant.product.offer = False
+        variant.product.category.offer = False
 
         # Check for product offer
         current_time = timezone.now()
+        variant.product.offer = False
+        variant.product.category.offer = False
         if variant.product.product_offer and variant.product.product_offer.active and variant.product.product_offer.valid_from <= current_time <= variant.product.product_offer.valid_to:
             combined_discount += variant.product.product_offer.discount
+            variant.product.offer = True
 
         # Check for category offer
         if variant.product.category.category_offer and variant.product.category.category_offer.active and variant.product.category.category_offer.valid_from <= current_time <= variant.product.category.category_offer.valid_to:
             combined_discount += variant.product.category.category_offer.discount
+            variant.product.category.offer = True
 
         # Calculate offer price if there is a discount
         if combined_discount > 0:
             offer_price = final_price - (final_price * combined_discount / 100)
+
         else:
             offer_price = None
 
         # Add offer price to the variant object
         variant.offer_price = offer_price
+        print(" offer is", variant.product.offer)
 
     # Pagination
     paginator = Paginator(variants, 6)  
@@ -112,7 +121,7 @@ def shop(request):
         variants_page = paginator.page(1)
     except EmptyPage:
         variants_page = paginator.page(paginator.num_pages)
-    
+
     context = {
         'categories': categories,
         'variants': variants_page,  # Use the paginated variants
@@ -121,9 +130,10 @@ def shop(request):
         'category_id': category_filter,
         'sort_by': sort_by,
         'search_query': search_query,
-        'paginator': paginator
+        'paginator': paginator,
+        'variant.product.offer': variant.product.offer,
+        'variant.product.category.offer': variant.product.category.offer
     }
-    
     return render(request, 'main/shop.html', context)
 
 
@@ -141,6 +151,7 @@ class VariantForm(forms.ModelForm):
 session in add to cart is pass the ram and rom with the link '''
 
 
+@login_required(login_url='login')
 def product_details(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     variant_id = request.GET.get('variant_id')

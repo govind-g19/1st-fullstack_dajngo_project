@@ -21,6 +21,8 @@ urlpatterns = [
          name='delete_myorder'),
     path('return_orders/<int:orderid>/', views.return_orders,
          name='return_orders'),
+    path('single_order/<int:orderid>/', views.single_order,
+         name='single_order'),
     path('del_incomplete_order/<int:orderid>/', views.del_incomplete_order,
          name='del_incomplete_order'),
     path('check_order_status/<int:orderid>/', views.check_order_status,

@@ -14,7 +14,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.encoding import DjangoUnicodeDecodeError
 from .models import Address, Coupons, UserCoupons, Wallet, Transaction
 from .models import WishList, Referral
-# for the copon 
+# for the copon
 from django.db.models import Case, When, BooleanField
 from django.utils import timezone
 from adminmanager.models import Product, Variant
@@ -31,6 +31,7 @@ from django.views.generic import View
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 # threding to reduce time
 import threading
+import uuid
 # for validation
 import re
 # cart
@@ -64,43 +65,33 @@ def signup(request):
 
         # Password length check
         if len(password) < 8:
-            messages.warning(request,
-                             "Password must be at least 8 characters long.")
+            messages.warning(request, "Password must be at least 8 characters long.")
             return render(request, "auth/signup.html")
 
         # Password complexity check
         if not re.search(r'[A-Z]', password):
-            messages.warning(request,
-                             '''Password must contain at least one uppercase 
-                             letter.''')
+            messages.warning(request, "Password must contain at least one uppercase letter.")
             return render(request, "auth/signup.html")
 
         if not re.search(r'[a-z]', password):
-            messages.warning(request,
-                             "Password must contain at least one lowercase.")
+            messages.warning(request, "Password must contain at least one lowercase letter.")
             return render(request, "auth/signup.html")
 
         if not re.search(r'[0-9]', password):
-            messages.warning(request,
-                             "Password must contain at least one digit.")
+            messages.warning(request, "Password must contain at least one digit.")
             return render(request, "auth/signup.html")
 
         if not re.search(r'[@$!%*?&]', password):
-            messages.warning(request,
-                             '''Password must contain at
-                              least one special character
-                               (@, $, !, %, *, ?, &).''')
+            messages.warning(request, "Password must contain at least one special character (@, $, !, %, *, ?, &).")
             return render(request, "auth/signup.html")
 
         # Username validation
         if len(uname) < 3 or len(uname) > 30:
-            messages.warning(request, 
-                             "Username must be between 3 and 30 characters.")
+            messages.warning(request, "Username must be between 3 and 30 characters.")
             return render(request, "auth/signup.html")
 
         if not uname.isalnum():
-            messages.warning(request,
-                             "Username can only contain letters and numbers.")
+            messages.warning(request, "Username can only contain letters and numbers.")
             return render(request, "auth/signup.html")
 
         if not first_name.isalpha():
@@ -120,6 +111,27 @@ def signup(request):
             messages.warning(request, "Email is already registered.")
             return render(request, "auth/signup.html")
 
+        # Referral verification
+        referred_by = None
+        if referral_code:
+            try:
+                # Validate if the referral_code is a valid UUID
+                uuid.UUID(referral_code)
+                referral = Referral.objects.get(referral_code=referral_code)
+                referred_by = referral.user
+
+                if not referred_by.is_active:
+                    messages.error(request, 'Invalid Referral Code.')
+                    return render(request, "auth/signup.html")
+
+                if uname == referred_by.username:
+                    messages.error(request, 'Self Referral is not allowed.')
+                    return render(request, "auth/signup.html")
+
+            except (ValueError, Referral.DoesNotExist):
+                messages.error(request, 'Invalid referral code format or referral code does not exist.')
+                return render(request, "auth/signup.html")
+
         # Create a new User object
         user = User.objects.create_user(
             username=uname,
@@ -133,43 +145,26 @@ def signup(request):
         user.is_active = False
         user.save()
 
-        # Referral verification 
-        if referral_code:
-            try:
-                referral = Referral.objects.get(referral_code=referral_code)
-                print(referral)
-                referred_by = referral.user
-                print(referred_by)
+        # Process referral rewards after user creation
+        if referral_code and referred_by:
+            # Reward referred_by with $100
+            referred_by_wallet, created = Wallet.objects.get_or_create(user=referred_by)
+            referred_by_wallet.balance += 100
+            referred_by_wallet.save()
+            Transaction.objects.create(wallet=referred_by_wallet,
+                                       transaction_type='credit',
+                                       amount=100)
 
-                if referred_by:
-                    if user != referred_by and referred_by.is_active:
-                        # Reward referred_by with $100
-                        referred_by_wallet, created = Wallet.objects.get_or_create(user=referred_by)
-                        referred_by_wallet.balance += 100
-                        referred_by_wallet.save()
-                        Transaction.objects.create(wallet=referred_by_wallet,
-                                                transaction_type='credit',
-                                                amount=100)
+            # Reward user with $50
+            user_wallet, created = Wallet.objects.get_or_create(user=user)
+            user_wallet.balance += 50
+            user_wallet.save()
+            Transaction.objects.create(wallet=user_wallet,
+                                       transaction_type='credit',
+                                       amount=50)
 
-                        # Reward user with $50
-                        user_wallet, created = Wallet.objects.get_or_create(user=user)
-                        user_wallet.balance += 50
-                        user_wallet.save()
-                        Transaction.objects.create(wallet=user_wallet,
-                                                transaction_type='credit',
-                                                amount=50)
-
-                        # Create Referral entry
-                        Referral.objects.create(user=user, referred_by=referred_by)
-                    else:
-                        messages.error(request, 'Self Referral is not allowed.')
-                else:
-                    messages.error(request, 'Invalid Referral Code.')
-                    return render(request, "auth/signup.html")
-
-            except Referral.DoesNotExist:
-                messages.error(request, 'Invalid Referral Code.')
-                return render(request, "auth/signup.html")
+            # Create Referral entry
+            Referral.objects.create(user=user, referred_by=referred_by)
 
         current_site = get_current_site(request)
         email_subject = "Activate Your Account"
@@ -273,24 +268,30 @@ class SetNewPasswordView(View):
 
         # Password length check
         if len(password) < 8:
-            messages.warning(request, "Password must be at least 8 characters long.")
+            messages.warning(request,
+                             "Password must be at least 8 characters long.")
             return render(request, "auth/set-new-password.html", context)
 
         # Password complexity check
         if not re.search(r'[A-Z]', password):
-            messages.warning(request, "Password must contain at least one uppercase letter.")
+            messages.warning(request,
+                             "Password must contain at least one uppercase.")
             return render(request, "auth/set-new-password.html", context)
 
         if not re.search(r'[a-z]', password):
-            messages.warning(request, "Password must contain at least one lowercase letter.")
+            messages.warning(request,
+                             "Password must contain at least one lowercase")
             return render(request, "auth/set-new-password.html", context)
 
         if not re.search(r'[0-9]', password):
-            messages.warning(request, "Password must contain at least one digit.")
+            messages.warning(request,
+                             "Password must contain at least one digit.")
             return render(request, "auth/set-new-password.html", context)
 
         if not re.search(r'[@$!%*?&]', password):
-            messages.warning(request, "Password must contain at least one special character (@, $, !, %, *, ?, &).")
+            messages.warning(request,
+                             '''Password must contain at least one special
+                               character (@, $, !, %, *, ?, &).''')
             return render(request, "auth/set-new-password.html", context)
         try:
             user_id = force_str(urlsafe_base64_decode(uidb64))
@@ -319,7 +320,8 @@ def loogin(request):
             messages.success(request, "Log in success")
             request.session["is_authenticated"] = True
 
-            # Redirect to the product details page or a default URL if 'next' not present
+            '''  Redirect to the product details page or a
+            default URL if 'next' not present'''
             next_param = request.GET.get("next")
 
             if next_param:
@@ -408,7 +410,7 @@ def edit_profile(request):
 
         # Check if phone number is already in use
         if phone_number:
-            if not re.match("^\d{10}$", phone_number):
+            if not re.match("^/d{10}$", phone_number):
                 messages.error(request,
                                "Please enter a valid 10-digit phone number.")
                 return redirect("edit_profile")
@@ -420,7 +422,6 @@ def edit_profile(request):
         else:
             messages.error(request, "Enter a valid Number")
             return redirect("edit_profile")
-
 
         # Update user's username and email
         current_user.username = username
@@ -465,12 +466,12 @@ def change_password(request):
             return render(request, "auth/change_password.html")
         # Password complexity check
         if not re.search(r'[A-Z]', password):
-            messages.warning(request, '''Password must contain at 
+            messages.warning(request, '''Password must contain at
                              least one uppercase letter.''')
             return render(request, "auth/change_password.html")
 
         if not re.search(r'[a-z]', password):
-            messages.warning(request, '''Password must contain at 
+            messages.warning(request, '''Password must contain at
                              least one lowercase letter.''')
             return render(request, "auth/change_password.html")
 
@@ -500,21 +501,21 @@ def change_password(request):
 
 
 # View coupon
+@login_required
 def user_view_coupons(request):
     current_datetime = timezone.now()
 
-    # Query to fetch valid coupons and annotate with is_used status
-    valid_coupons = Coupons.objects.filter(valid_from__lte=current_datetime, valid_to__gte=current_datetime).annotate(
-        is_used=Case(
-            When(usercoupons__user=request.user, usercoupons__is_used=True, then=True),
-            default=False,
-            output_field=BooleanField(),
-        )
-    )
+    # Fetch all valid coupons
+    valid_coupons = Coupons.objects.filter(valid_from__lte=current_datetime, valid_to__gte=current_datetime)
+
+    # Fetch used coupons for the current user
+    used_coupons = UserCoupons.objects.filter(user=request.user, is_used=True).values_list('coupon', flat=True)
 
     context = {
         'valid_coupons': valid_coupons,
+        'used_coupons': used_coupons,
     }
+
     return render(request, 'auth/user_view_coupons.html', context)
 
 
@@ -547,7 +548,7 @@ def my_wallet(request):
         wallet = Wallet.objects.create(user=request.user, balance=0)
 
     transactions = Transaction.objects.filter(
-        wallet=wallet).order_by('timestamp')
+        wallet=wallet).order_by('-timestamp')
 
     context = {
         'my_wallet': wallet,
@@ -651,18 +652,22 @@ def view_wishlist(request):
 @login_required
 def add_to_cart_from_wishlist(request, wishlist_item_id):
     current_user = request.user
-    wishlist_item = get_object_or_404(WishList, id=wishlist_item_id, user=current_user)
+    wishlist_item = get_object_or_404(WishList,
+                                      id=wishlist_item_id,
+                                      user=current_user)
     product = wishlist_item.product
     variant = wishlist_item.variant
 
     if variant.is_available and product.available and variant.quantity > 0:
         cart, created = Cart.objects.get_or_create(user=current_user)
         cart_items_count = CartItem.objects.filter(cart=cart).count()
-        total_cart_items = CartItem.objects.filter(cart=cart).aggregate(total_quantity=Sum('added_quantity'))['total_quantity']
+        total_cart_items = CartItem.objects.filter(cart=cart).aggregate(
+            total_quantity=Sum('added_quantity'))['total_quantity']
         total_cart_items = total_cart_items or 0
 
         if cart_items_count >= 5 or total_cart_items >= 5:
-            messages.error(request, "You can only add up to 5 items to your cart.")
+            messages.error(request,
+                           "You can only add up to 5 items to your cart.")
             return redirect('cart')
 
         cart_item, item_created = CartItem.objects.get_or_create(
@@ -675,22 +680,28 @@ def add_to_cart_from_wishlist(request, wishlist_item_id):
 
         if not item_created:
             if cart_item.added_quantity < variant.quantity:
-                if cart_item.added_quantity + 1 > 5 or total_cart_items + 1 > 5:
-                    messages.error(request, "You can only add up to 5 items to your cart.")
+                if (cart_item.added_quantity + 1 > 5 or
+                   total_cart_items + 1 > 5):
+                    messages.error(request,
+                                   "You can only add up to 5 items to cart.")
                     return redirect('cart')
                 cart_item.added_quantity += 1
                 cart_item.save()
                 # Remove the item from the wishlist after adding to the cart
                 wishlist_item.delete()
-                messages.success(request, "Product added to cart and removed from wishlist")
+                messages.success(request,
+                                 '''Product added to cart and removed from
+                                 wishlist''')
                 return redirect("cart")
             else:
-                messages.warning(request, "Quantity exceeds available stock")
+                messages.warning(request,
+                                 "Quantity exceeds available stock")
                 return redirect("wishlist")
         else:
             # Remove the item from the wishlist after adding to the cart
             wishlist_item.delete()
-            messages.success(request, "Product added to cart and removed from wishlist")
+            messages.success(request,
+                             "Product added to cart and removed from wishlist")
             return redirect("cart")
     else:
         if not variant.is_available or variant.quantity <= 0:
@@ -698,7 +709,6 @@ def add_to_cart_from_wishlist(request, wishlist_item_id):
         if not product.available:
             messages.error(request, "Product is not available.")
         return redirect("wishlist")
-
 
 
 @login_required
@@ -709,18 +719,22 @@ def add_all_to_cart(request):
     if wishlist_items:
         cart, created = Cart.objects.get_or_create(user=current_user)
         cart_items_count = CartItem.objects.filter(cart=cart).count()
-        total_cart_items = CartItem.objects.filter(cart=cart).aggregate(total_quantity=Sum('added_quantity'))['total_quantity']
+        total_cart_items = CartItem.objects.filter(
+            cart=cart).aggregate(total_quantity=Sum(
+                'added_quantity'))['total_quantity']
         total_cart_items = total_cart_items or 0
 
         for wishlist_item in wishlist_items:
             if cart_items_count >= 5 or total_cart_items >= 5:
-                messages.error(request, "You can only add up to 5 items to your cart.")
+                messages.error(request,
+                               "You can only add up to 5 items to your cart.")
                 break
 
             product = wishlist_item.product
             variant = wishlist_item.variant
 
-            if variant and variant.is_available and product.available and variant.quantity > 0:
+            if (variant and variant.is_available and
+               product.available and variant.quantity > 0):
                 cart_item, item_created = CartItem.objects.get_or_create(
                     user=current_user,
                     product=product,
@@ -732,18 +746,26 @@ def add_all_to_cart(request):
 
                 if not item_created:
                     if cart_item.added_quantity < variant.quantity:
-                        if cart_item.added_quantity + 1 > 5 or total_cart_items + 1 > 5:
-                            messages.error(request, f"You can only add up to 5 items to your cart.")
+                        if (cart_item.added_quantity + 1 > 5 or
+                           total_cart_items + 1 > 5):
+                            messages.error(request,
+                                           "Add only up to 5 items to cart.")
                             break
                         cart_item.added_quantity += 1
                         cart_item.save()
-                        messages.success(request, "All available items added to cart")
+                        messages.success(request,
+                                         "All available items added to cart")
                     else:
-                        messages.warning(request, f"Quantity for {product.product_name} exceeds available stock")
+                        messages.warning(request,
+                                         f'''Quantity for
+                                         {product.product_name} exceeds
+                                         available stock''')
                         continue
 
                 cart_items_count = CartItem.objects.filter(cart=cart).count()
-                total_cart_items = CartItem.objects.filter(cart=cart).aggregate(total_quantity=Sum('added_quantity'))['total_quantity']
+                total_cart_items = CartItem.objects.filter(
+                    cart=cart).aggregate(total_quantity=Sum(
+                        'added_quantity'))['total_quantity']
                 total_cart_items = total_cart_items or 0
 
                 wishlist_item.delete()

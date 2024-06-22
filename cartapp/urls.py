@@ -34,6 +34,8 @@ urlpatterns = [
          name='delete_coupon'),
     path('apply_coupon', views.apply_coupon,
          name='apply_coupon'),
+    path('remove_coupon', views.remove_coupon,
+         name='remove_coupon'),
     path('delete_cart/<int:cart_id>/', views.delete_cart,
          name='delete_cart'),
     path('page_direct', views.page_direct, name='page_direct'),

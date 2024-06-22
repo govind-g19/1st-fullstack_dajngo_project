@@ -10,12 +10,13 @@
 <div class="col-search">
     <form method="GET" action="{% url 'shop' %}" class="searchform">
         <div class="input-group">
-            <input type="text" name="q" class="form-control form-control-lg gray-bg" placeholder="Search term" value="{{ search_query }}">
+            <input type="text" name="q" class="form-control form-control-lg gray-bg" placeholder="Search term" {% if q %}value="{{ search_query }}"{% endif %}>
             <button type="submit" class="btn btn-bg-dark-subtle">
                 <i class="material-icons md-search"></i>
             </button>
         </div>
     </form>
+    
 </div>
 {% endblock search %}
 
@@ -49,10 +50,6 @@
                         <option value="256GB" {% if rom == '256GB' %} selected {% endif %}>256GB</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-dark" style="padding: 0.65rem .35rem; font-size: 0.975rem;">Filter</button>
-            </form>
-
-            <form method="GET" class="d-flex align-items-end">
                 <div class="me-1">
                     <select name="sort_by" class="form-select" style="font-size: 0.875rem;">
                         <option value="">Sort By</option>
@@ -62,7 +59,7 @@
                         <option value="price_desc" {% if sort_by == 'price_desc' %} selected {% endif %}>Price (High to Low)</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-dark" style="padding: 0.65rem .35rem; font-size: 0.975rem;">Apply</button>
+                <button type="submit" class="btn btn-dark" style="padding: 0.65rem .35rem; font-size: 0.975rem;">Filter</button>
             </form>
         </div>
         <div class="variant-count">
@@ -91,7 +88,7 @@
                             <h5 class="card-title">{{ variant.product.product_name }}</h5>
                             <h6 class="card-text">RAM: {{ variant.ram }}</h6>
                             <h6 class="card-text">Internal Memory: {{ variant.internal_memory }}</h6>
-                            {% if variant.product.product_offer or variant.product.category.category_offer%}
+                            {% if variant.product.offer or variant.product.category.offer %}
 
                             <h6 class="card-text ">Price: Rs.<h6 class='text-decoration-line-through text-danger'>{{ variant.final_price }} </h6>
                             <h6 class="card-text">Offer Price: Rs.{{ variant.offer_price }}</h6>

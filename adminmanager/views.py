@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.http import HttpResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -10,28 +11,28 @@ from authapp.models import Wallet, Transaction
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import cache_control, never_cache
 from .forms import VariantForm
-from django.db.models import Avg, Sum, Count, F, Sum, ExpressionWrapper, Q
+from django.db.models import Avg, Sum, Count, Q
 from django.http import HttpResponseForbidden
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from decimal import Decimal
 from .forms import UpdateOrderStatusForm, ProductOfferForm, CategoryOfferform
 from django.contrib.auth.decorators import user_passes_test
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 import pandas as pd
+from django.core.paginator import Paginator
 # Include these imports if not already included
-from django.shortcuts import render
-from django.http import HttpResponse
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
+from reportlab.platypus import TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import inch
-from django.core.paginator import Paginator,EmptyPage,PageNotAnInteger
-import os
-import io
-from django.template import loader
+# from reportlab.pdfgen import canvas
+# from reportlab.lib.units import inch
+# from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+# import os
+# import io
+# from django.template import loader
 
 
 def superuser_required(function=None):
@@ -648,6 +649,12 @@ def undo_delete_variant(request, product_id):
 def admin_order_view(request):
     orders = Orders.objects.all().select_related('user').prefetch_related(
         'orderitem_set').order_by('-order_date')
+    orders = Orders.objects.filter(user=request.user).order_by('-order_date')
+
+    # Paginate orders
+    paginator = Paginator(orders, 10)  # Show 10 orders per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     if request.method == 'POST':
         form = UpdateOrderStatusForm(request.POST)
@@ -668,7 +675,7 @@ def admin_order_view(request):
         form = UpdateOrderStatusForm()
 
     context = {
-        'orders': orders,
+        'orders': page_obj,
         'form': form,
     }
     return render(request, 'admin/order_view.html', context)

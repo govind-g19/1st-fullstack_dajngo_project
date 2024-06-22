@@ -76,6 +76,7 @@ def product_category_availability(request, product_id):
     prodduct = get_object_or_404(Product, id=product_id)
     return True if prodduct.available and prodduct.category.is_available else False
 
+
 @login_required
 def cart_view(request, total=0, quantity=0, cart_items=None):
     try:
@@ -83,6 +84,29 @@ def cart_view(request, total=0, quantity=0, cart_items=None):
         grand_total = 0
         total_discount = 0  # Total discount for all items
         cart_item_details = []  # List to hold details for each cart item
+        if "applied_coupon_code" in request.session:
+            # Retrieve the coupon code from the session
+            applied_coupon_code = request.session["applied_coupon_code"]
+
+            # Get the UserCoupons object with the applied coupon code
+            user_coupon = UserCoupons.objects.get(
+                coupon__coupon_code=applied_coupon_code,
+                user=request.user
+            )
+
+            # Update the is_used status to False if it is currently True
+            if user_coupon.is_used:
+                user_coupon.is_used = False
+                user_coupon.save()
+
+            # Remove the coupon code from the session
+            del request.session["applied_coupon_code"]
+
+            # Remove the applied coupon discount from the session if it exists
+            if "applied_coupon_discount" in request.session:
+                del request.session["applied_coupon_discount"]
+
+            messages.success(request, "Coupon is removed.")
 
         if request.user.is_authenticated:
             cart_items = CartItem.objects.filter(user=request.user, is_active=True)
@@ -145,7 +169,6 @@ def offer_calculaton(variant_id, current_time):
             variant.product.product_offer.active and
             variant.product.product_offer.valid_from <= current_time <= variant.product.product_offer.valid_to):
         product_offer = variant.product.product_offer.discount
-        
 
     if (final_price and
             variant.product.category.category_offer and
@@ -239,6 +262,7 @@ def check_out(request):
     shipping = 0
     grand_total = 0
     cart_items = None
+    coupon_discount=0
     discount_amount = 0
     total_discount = 0
     offer_price = 0
@@ -273,7 +297,7 @@ def check_out(request):
             cart_item.offer_price = offer_price
             cart_item.product_offer = product_offer
             cart_item.category_offer = category_offer
-            
+
             if offer_price:
                 print(offer_price)
                 item_total_price = offer_price * cart_item.added_quantity
@@ -299,11 +323,11 @@ def check_out(request):
             applied_coupons = UserCoupons.objects.filter(
                 user=request.user, coupon__coupon_code=applied_coupon_code, is_used=True
             )
-            discount_amount = applied_coupons.aggregate(discount_amount=Sum("coupon__discount"))["discount_amount"] or 0
+            coupon_discount = applied_coupons.aggregate(coupon_discount=Sum("coupon__discount"))["coupon_discount"] or 0
 
-        discount = total - discount_amount
+        discount = total - coupon_discount
 
-        discount_amount += total_discount
+        discount_amount = total_discount + coupon_discount
 
         grand_total = discount + tax + shipping
 
@@ -314,15 +338,10 @@ def check_out(request):
     address_list = Address.objects.filter(user=request.user)
     default_address = address_list.filter(is_primary=True).first()
 
-    valid_coupons = Coupons.objects.filter(valid_from__lte=current_datetime, valid_to__gte=current_datetime)
-
-    valid_coupons = valid_coupons.annotate(
-        is_used=Case(
-            When(usercoupons__user=request.user, usercoupons__is_used=True, then=True),
-            default=False,
-            output_field=BooleanField(),
-        )
-    )
+    valid_coupons = Coupons.objects.filter(valid_from__lte=current_datetime,
+                                           valid_to__gte=current_datetime
+                                           )
+    used_coupon = UserCoupons.objects.filter(user=request.user, is_used=True).values_list('coupon', flat=True)
 
     context = {
         "total": total,
@@ -335,6 +354,8 @@ def check_out(request):
         "address_list": address_list,
         "default_address": default_address,
         "valid_coupons": valid_coupons,
+        'used_coupon': used_coupon,
+        'coupon_discount': coupon_discount,
         "discount_amount": discount_amount,
         "redirect_page": "check_out",
         'total_discount': total_discount
@@ -390,6 +411,26 @@ def apply_coupon(request):
 
     return redirect("check_out")
 
+
+def remove_coupon(request):
+    if "applied_coupon_code" in request.session:
+        try:
+            applied_coupon_code = request.session["applied_coupon_code"]
+
+            if applied_coupon_code:
+                user_coupon = UserCoupons.objects.get(
+                    user=request.user,
+                    coupon__coupon_code=applied_coupon_code)
+            if user_coupon:
+                user_coupon.is_used = False
+                user_coupon.save()
+                del request.session["applied_coupon_code"]
+                if "applied_coupon_discount" in request.session:
+                    del request.session["applied_coupon_discount"]
+                messages.error(request, ' The Coupon is removed ')
+        except UserCoupons.DoesNotExist:
+            messages.error(request, 'No Coupon Applied')
+    return redirect('check_out')
 
 @login_required
 def delete_cart(request, cart_id):

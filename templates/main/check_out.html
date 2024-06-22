@@ -17,6 +17,7 @@
         </a>
       </div>
       <br> 
+
       <div class="col-7">
         <!-- Cart Items -->
         <div class="col-md-12">
@@ -122,17 +123,26 @@
                 <input type="text" class="form-control" name="coupon_code" id="coupon_code" placeholder="Enter coupon code" required>
               </div>
               <div class="col-auto">
-                <button type="submit" class="btn btn-outline-secondary mb-3">Apply coupon</button>
+                {% if coupon_discount  %}
+                    <a href="{% url 'remove_coupon' %}" class="btn btn-outline-secondary mb-3" >
+                        Cancel applied coupon
+                    </a>
+                {% else %}
+                  <button type="submit" class="btn btn-outline-secondary mb-3">Apply coupon</button>
+                {% endif %}
               </div>
             </form>
             <!-- Show Coupons Button and Table -->
             <button id="showCouponsBtn" class="btn btn-secondary" style="border-radius: 35px;">Show Coupons</button>
+
+            
+            <br>
+            <br>
             <div id="couponsTableWrapper" style="display: none;">
               <table class="table table-hover fw-medium" style="border: 2px solid gray;">
                 <thead>
                   <tr>
                     <th scope="col" class="fw-bolder" style="width: 10%;">Coupon code</th>
-                    <th scope="col" class="fw-bolder" style="width: 10%;">Brand</th>
                     <th scope="col" class="fw-bolder" style="width: 10%;">Minimum Amount</th>
                     <th scope="col" class="fw-bolder" style="width: 10%;">Discount price</th>
                     <th scope="col" class="fw-bolder" style="width: 20%;">Expire date</th>
@@ -143,11 +153,10 @@
                   {% for valid_coupon in valid_coupons %}
                   <tr>
                     <td class="p-2">{{ valid_coupon.coupon_code }}</td>
-                    <td class="p-2">{{ valid_coupon.brand }}</td>
                     <td class="p-2">{{ valid_coupon.minimum_amount }}</td>
                     <td class="p-2">{{ valid_coupon.discount }}</td>
                     <td class="p-2">{{ valid_coupon.valid_to }}</td>
-                    {% if valid_coupon.is_used %}
+                    {% if valid_coupon.id in used_coupon %}
                       <td class="p-2 text-danger">Used</td>
                     {% else %}
                       <td class="p-2 text-success">Not Used</td>
@@ -188,8 +197,20 @@
                       <td class="card-text"><strong>Shipping: </strong></td>
                       <td class="card-text">₹{{ shipping }}</td>
                     </tr>
+                    <tr class="total-data " >
+                      <td class="card-text"><strong>Coupon: </strong></td>
+                      <td class="card-text" style="align-items: end; justify-content: space-between;">
+                          ₹{{ coupon_discount }}
+                          
+                      </td>
+                  </tr>
+                  
                     <tr class="total-data">
-                      <td class="card-text"><strong>Discount: </strong></td>
+                      <td class="card-text"><strong>Offer Discount: </strong></td>
+                      <td class="card-text">₹{{ total_discount }}</td>
+                    </tr>
+                    <tr class="total-data">
+                      <td class="card-text"><strong>Total Discount: </strong></td>
                       <td class="card-text">₹{{ discount_amount }}</td>
                     </tr>
                     <tr class="total-data">
@@ -226,12 +247,25 @@
                         <input type="hidden" name="product_offer_{{ cart_item.id }}" value="{{ cart_item.product_offer }}">
                         <input type="hidden" name="category_offer_{{ cart_item.id }}" value="{{ cart_item.category_offer }}">
                         {% endfor %}
-
+                        {% comment %} loder  {% endcomment %}
+                        <div id="loader" style="display: none; text-align: center;">
+                          <div class="spinner-grow" role="status">
+                            <span class="visually-">Loading...</span>
+                          </div>
+                          <div class="spinner-grow" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                          </div>
+                          <div class="spinner-grow" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                          </div>
+                          <p>Processing your order...</p>
+                        </div>
                         <div class="row mt-3">
                           <div class="col d-flex justify-content-between">
                             <button type="submit" class="btn btn-outline-secondary">Place Order</button>
                             <a href="{% url 'shop' %}" class="btn btn-outline-secondary">Continue Shopping</a>
                           </div>
+                          
                         </div>
                       </form>
                     </div>
@@ -252,8 +286,10 @@
       </div>
     </div>
   </div>
-
   <script>
+    document.getElementById("placeOrderForm").addEventListener("submit", function() {
+      document.getElementById("loader").style.display = "block";
+    });
     document.getElementById("showCouponsBtn").addEventListener("click", function() {
       var tableWrapper = document.getElementById("couponsTableWrapper");
       if (tableWrapper.style.display === "none") {

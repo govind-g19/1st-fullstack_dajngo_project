@@ -29,34 +29,46 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.graphics.shapes import Drawing, Line
 import os
+from django.core.paginator import Paginator
 
 
 @login_required
 def myorders(request):
     # Fetch orders for the logged-in user
     orders = Orders.objects.filter(user=request.user).order_by('-order_date')
-    # Fetch order items related to the fetched orders
-    order_items = OrderItem.objects.filter(order__in=orders)
 
-    # Fetch payments related to the fetched orders
-    payments = Payment.objects.filter(order__in=orders)
+    # Paginate orders
+    paginator = Paginator(orders, 10)  # Show 10 orders per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Fetch order items and payments related to the fetched orders
+    order_items = OrderItem.objects.filter(order__in=page_obj.object_list)
+    payments = Payment.objects.filter(order__in=page_obj.object_list)
 
     context = {
-        'orders': orders,
+        'page_obj': page_obj,
         'order_items': order_items,
         'payments': payments,
-
     }
 
     return render(request, 'order/myorders.html', context)
+
+
+def single_order(request, orderid):
+    order = get_object_or_404(Orders, id=orderid)
+    orderitems = OrderItem.objects.filter(order=order)
+    context = {
+        'order': order,
+        'order_items': orderitems
+    }
+    return render(request, 'order/single_order.html', context)
 
 
 @login_required
 def return_orders(request, orderid):
     try:
         order = get_object_or_404(Orders, id=orderid, user=request.user)
-        # Check if the order status is 'Delivered' and it was made within the last 30 days
-        # and (now() - order.order_date).days <= 30
         if order.status == 'Delivered':
             order.is_active = False
             order.status = 'Returned'
@@ -197,7 +209,7 @@ def place_order(request):
 
             # Update the order with the total offer discount
             order.offer_discount = total_offer_discount
-            order.grand_total = subtotal + shipping + tax - total_offer_discount - coupon_discount
+            # order.grand_total = subtotal + shipping + tax - total_offer_discount - coupon_discount
             order.save()
 
             # Delete the cart after order is created
@@ -528,27 +540,27 @@ def incompleteorder(request):
 def delete_myorder(request, orderid):
     try:
         order = get_object_or_404(Orders, id=orderid, user=request.user)
-        order.is_active = False
-        order.status = 'Cancelled'
-        order.save()
-
+        if order.status in ['Delivered', 'Cancelled']:
+            messages.error(request, 'The order cannot be cancelled')
+            return redirect('myorders')
         order_items = OrderItem.objects.filter(order=order)
         for item in order_items:
             variant = get_object_or_404(Variant, id=item.variant.id)
             variant.quantity += item.quantity
             variant.save()
-
-        if order.status in ['Delivered', 'Cancelled']:
-            messages.error(request, 'The order cannot be cancelled')
         else:
-            wallet, created = Wallet.objects.get_or_create(user=request.user)
-            wallet.balance += Decimal(order.grand_total)
-            wallet.save()
-            Transaction.objects.create(wallet=wallet,
-                                        transaction_type='credit',
-                                        amount=Decimal(order.grand_total))
-            messages.success(request, 'Order successfully cancelled')
-            
+            if order.payment_method != 'COD':
+                wallet, created = Wallet.objects.get_or_create(
+                    user=request.user)
+                wallet.balance += Decimal(order.grand_total)
+                wallet.save()
+                Transaction.objects.create(wallet=wallet,
+                                            transaction_type='credit',
+                                            amount=Decimal(order.grand_total))
+                messages.success(request, 'Order successfully cancelled')
+        order.is_active = False
+        order.status = 'Cancelled'
+        order.save()
 
     except Orders.DoesNotExist:
         messages.error(request, 'Order not found.')
@@ -607,7 +619,6 @@ def download_invoice(request, order_id):
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="invoice_{order.order_id}.pdf"'
 
-        
         # Define margins
         left_margin = 1 * inch
         right_margin = 0.5 * inch
@@ -652,7 +663,6 @@ def download_invoice(request, order_id):
             spaceBefore=10,
             spaceAfter=5,
         )
-
 
         # Add elements to the PDF
         elements.append(Spacer(1, top_margin))  # Add space at the top
