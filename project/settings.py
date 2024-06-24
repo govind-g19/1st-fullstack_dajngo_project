@@ -12,21 +12,24 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 from django.contrib.messages import constants as message
-
+import environ
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Initialize environment variables
+env = environ.Env()
+environ.Env.read_env()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ln9sjq)lthy9j-ce3m@yk17d595ayc@nt85-oi34z$5qydh-5s'
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG', default=False)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
 
 # Application definition
@@ -44,7 +47,7 @@ INSTALLED_APPS = [
     'adminmanager',
     'cartapp',
     'orders',
-    
+
 ]
 
 MIDDLEWARE = [
@@ -78,14 +81,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'project.wsgi.application'
 
+# Security settings
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+# SECURE_SSL_REDIRECT = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+X_FRAME_OPTIONS = 'DENY'
+X_CONTENT_TYPE_OPTIONS = 'nosniff'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': env('DATABASE_ENGINE'),
+        'NAME': BASE_DIR / env('DATABASE_NAME'),
     }
 }
 
@@ -129,8 +143,8 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = env('MEDIA_URL')
+MEDIA_ROOT = BASE_DIR / env('MEDIA_ROOT')
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
@@ -140,30 +154,30 @@ MESSAGE_TAGS = {
 }
 
 # Set the email backend
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = env('EMAIL_BACKEND')
 
 # SMTP configuration for Gmail (replace with your email provider's settings)
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'govindg192000@gmail.com'
-EMAIL_HOST_PASSWORD = 'oskx ryff oveu obyj'
-EMAIL_USE_TLS = True
+EMAIL_HOST = env('EMAIL_HOST')
+EMAIL_PORT = env('EMAIL_PORT')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = env('EMAIL_USE_TLS')
 # Default sender email address
-DEFAULT_FROM_EMAIL = 'govindg192000@gmail.com'
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 
 # Admin email address (to receive notifications)
-ADMIN_EMAIL = 'govind.g19042000@gmail.com'
+ADMIN_EMAIL = env('ADMIN_EMAIL')
 
 
 # settings.py
-CRISPY_TEMPLATE_PACK = 'bootstrap'
+CRISPY_TEMPLATE_PACK = env('CRISPY_TEMPLATE_PACK')
 
-KEY = 'rzp_test_WV3YippkTn0iML'
-SECRET = 'dWcAannHA5sngjqGPYMsoVYC'
+KEY = env('RAZORPAY_KEY_ID')
+SECRET = env('RAZORPAY_SECRET_KEY')
 
 ADMIN_DETAILS = {
-    'company_name': 'V Kart',
-    'address': 'Thrissur, kerala India ',
-    'contact_email': 'v_kart@example.com',
-    'phone': '(123) 456-7890',
+    'company_name': env('ADMIN_DETAILS_COMPANY_NAME'),
+    'address': env('ADMIN_DETAILS_ADDRESS'),
+    'contact_email': env('ADMIN_DETAILS_CONTACT_EMAIL'),
+    'phone': env('ADMIN_DETAILS_PHONE'),
 }
