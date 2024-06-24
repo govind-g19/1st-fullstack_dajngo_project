@@ -1,0 +1,6 @@
+ # Ignore environment variables file
+.env
+
+# Ignore media files
+media/
+
