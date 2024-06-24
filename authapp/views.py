@@ -342,6 +342,7 @@ def loogout(request):
     return redirect("/auth/login")
 
 
+@login_required(login_url='login')
 # user profile
 def view_profile(request):
     current_user = request.user
@@ -367,6 +368,7 @@ def view_profile(request):
     return render(request, 'auth/view_profile.html', context)
 
 
+@login_required(login_url='login')
 def edit_profile(request):
     current_user = request.user
     address = Address.objects.filter(user=current_user,
@@ -452,7 +454,7 @@ def edit_profile(request):
     return render(request, 'auth/edit_profile.html', context)
 
 
-@login_required
+@login_required(login_url='login')
 def change_password(request):
     if request.method == 'POST':
         password = request.POST.get('old_password')
@@ -501,7 +503,7 @@ def change_password(request):
 
 
 # View coupon
-@login_required
+@login_required(login_url='login')
 def user_view_coupons(request):
     current_datetime = timezone.now()
 
@@ -520,7 +522,7 @@ def user_view_coupons(request):
 
 
 # Address
-@login_required
+@login_required(login_url='login')
 def manage_address(request):
     current_user = request.user
     main_addresses = Address.objects.filter(user=current_user,
@@ -534,7 +536,7 @@ def manage_address(request):
     return render(request, 'auth/manage_address.html', context)
 
 
-@login_required
+@login_required(login_url='login')
 def my_wallet(request):
     if request.method == "POST":
         if 'add' in request.POST:
@@ -557,7 +559,7 @@ def my_wallet(request):
     return render(request, 'auth/my_wallet.html', context)
 
 
-@login_required
+@login_required(login_url='login')
 def add_to_wallet(request):
     if request.method == "POST":
         try:
@@ -588,7 +590,7 @@ def add_to_wallet(request):
     return redirect('my_wallet')
 
 
-@login_required
+@login_required(login_url='login')
 def withdraw_funds(request):
     if request.method == 'POST':
         amount = request.POST.get('amount')
@@ -619,7 +621,7 @@ def withdraw_funds(request):
 
 
 # wishlist
-@login_required
+@login_required(login_url='login')
 def add_to_wishlist(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     variant_id = request.GET.get('variant_id')
@@ -640,7 +642,7 @@ def add_to_wishlist(request, product_id):
     return redirect('view_wishlist')
 
 
-@login_required
+@login_required(login_url='login')
 def view_wishlist(request):
     wishlist_items = WishList.objects.filter(user=request.user)
     context = {
@@ -649,7 +651,7 @@ def view_wishlist(request):
     return render(request, 'auth/view_wishlist.html', context)
 
 
-@login_required
+@login_required(login_url='login')
 def add_to_cart_from_wishlist(request, wishlist_item_id):
     current_user = request.user
     wishlist_item = get_object_or_404(WishList,
@@ -711,7 +713,7 @@ def add_to_cart_from_wishlist(request, wishlist_item_id):
         return redirect("wishlist")
 
 
-@login_required
+@login_required(login_url='login')
 def add_all_to_cart(request):
     current_user = request.user
     wishlist_items = WishList.objects.filter(user=current_user)

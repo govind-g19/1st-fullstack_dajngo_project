@@ -17,7 +17,7 @@ def generate_cart_id():
     return str(uuid.uuid4())
 
 
-@login_required
+@login_required(login_url='login')
 def add_to_cart(request, product_id):
     current_user = request.user
     product = get_object_or_404(Product, id=product_id)
@@ -77,7 +77,7 @@ def product_category_availability(request, product_id):
     return True if prodduct.available and prodduct.category.is_available else False
 
 
-@login_required
+@login_required(login_url='login')
 def cart_view(request, total=0, quantity=0, cart_items=None):
     try:
         tax = 0
@@ -186,7 +186,7 @@ def offer_calculaton(variant_id, current_time):
     return offer_price, combined_discount, product_offer, category_offer
 
 
-@login_required
+@login_required(login_url='login')
 def reduce_quantity(request, cart_item_id):
     try:
         cart_item = CartItem.objects.get(id=cart_item_id)
@@ -206,6 +206,7 @@ def reduce_quantity(request, cart_item_id):
         return redirect("cart")
 
 
+@login_required(login_url='login')
 def add_quantity(request, cart_item_id):
     try:
         cart_item = CartItem.objects.get(id=cart_item_id)
@@ -240,6 +241,7 @@ def add_quantity(request, cart_item_id):
         return redirect("cart")
 
 
+@login_required(login_url='login')
 def remove_cart(request, cart_item_id):
     try:
         cart_item = CartItem.objects.get(id=cart_item_id)
@@ -254,7 +256,7 @@ def remove_cart(request, cart_item_id):
     return redirect("cart")
 
 
-@login_required
+@login_required(login_url='login')
 def check_out(request):
     total = 0
     quantity = 0
@@ -363,7 +365,7 @@ def check_out(request):
     return render(request, "main/check_out.html", context)
 
 
-@login_required
+@login_required(login_url='login')
 def apply_coupon(request):
     if request.method == "POST":
         coupon_code = request.POST.get("coupon_code")
@@ -432,7 +434,7 @@ def remove_coupon(request):
             messages.error(request, 'No Coupon Applied')
     return redirect('check_out')
 
-@login_required
+@login_required(login_url='login')
 def delete_cart(request, cart_id):
     try:
         # Retrieve the cart to delete
@@ -462,7 +464,7 @@ def delete_cart(request, cart_id):
         return redirect("check_out")
 
 
-@login_required
+@login_required(login_url='login')
 def add_address(request):
     if request.method == "POST":
         current_user = request.user
@@ -546,7 +548,7 @@ def page_direct(request):
     return render(request, "auth/add_address.html", context)
 
 
-@login_required
+@login_required(login_url='login')
 def default_address(request, address_id):
     Address.objects.filter(user=request.user).update(is_primary=False)
     address = Address.objects.get(id=address_id)
@@ -554,7 +556,7 @@ def default_address(request, address_id):
     address.save()
     return redirect("check_out")
 
-
+@login_required(login_url='login')
 def edit_address(request, address_id):
     address = get_object_or_404(Address, pk=address_id)
 
@@ -577,7 +579,7 @@ def edit_address(request, address_id):
     return render(request, "main/edit_address.html", {"form": form, "source": source})
 
 
-@login_required
+@login_required(login_url='login')
 def delete_address(request, address_id):
     address = get_object_or_404(Address, id=address_id)
     if address.is_primary:
@@ -593,7 +595,7 @@ def delete_address(request, address_id):
 
 
 # To add coupon
-@login_required
+@login_required(login_url='login')
 def view_coupons(request):
     coupons = Coupons.objects.all()
     user_coupons = UserCoupons.objects.filter(
@@ -617,7 +619,7 @@ def add_coupon(request):
     return render(request, "auth/add_coupon.html", {"form": form})
 
 
-@login_required
+@login_required(login_url='login')
 def view_coupon_admin(request):
     coupons = Coupons.objects.all()
     return render(request, "auth/view_coupon_admin.html", {"coupons": coupons})

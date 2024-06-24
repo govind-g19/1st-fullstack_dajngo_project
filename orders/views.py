@@ -32,7 +32,7 @@ import os
 from django.core.paginator import Paginator
 
 
-@login_required
+@login_required(login_url='login')
 def myorders(request):
     # Fetch orders for the logged-in user
     orders = Orders.objects.filter(user=request.user).order_by('-order_date')
@@ -65,7 +65,7 @@ def single_order(request, orderid):
     return render(request, 'order/single_order.html', context)
 
 
-@login_required
+@login_required(login_url='login')
 def return_orders(request, orderid):
     try:
         order = get_object_or_404(Orders, id=orderid, user=request.user)
@@ -106,7 +106,7 @@ def return_orders(request, orderid):
         messages.error(request, f"An error occurred: {str(e)}")
 
 
-@login_required
+@login_required(login_url='login')
 def place_order(request):
     if request.method == "POST":
         user = request.user
@@ -269,7 +269,7 @@ def offer_calculation(variant_id, current_time):
     return offer_price, combined_discount, product_offer, category_offer
 
 
-@login_required
+@login_required(login_url='login')
 def order_page(request, orderid):
     order = Orders.objects.get(id=orderid)
     orderitems = OrderItem.objects.filter(order=order)
@@ -293,7 +293,7 @@ def order_page(request, orderid):
     return render(request, "order/place_order.html", context)
 
 
-@login_required
+@login_required(login_url='login')
 def payment_cod(request, orderid):
     try:
         order = Orders.objects.get(id=orderid)
@@ -327,7 +327,7 @@ def payment_cod(request, orderid):
     return redirect('order_page', orderid=order.id)
 
 
-@login_required
+@login_required(login_url='login')
 def payment_wallet(request, orderid):
     try:
         order = get_object_or_404(Orders, id=orderid)
@@ -378,7 +378,7 @@ def payment_wallet(request, orderid):
     return redirect('order_page', orderid=order.id)
 
 
-@login_required
+@login_required(login_url='login')
 def check_order_status(request, orderid):
     try:
         order = Orders.objects.get(id=orderid)
@@ -392,7 +392,7 @@ def check_order_status(request, orderid):
                              'message': 'Order not found'})
 
 
-@login_required
+@login_required(login_url='login')
 def payment_razorpay(request, orderid):
     try:
         order = Orders.objects.get(id=orderid)
@@ -509,7 +509,7 @@ def paymenthandler(request):
         return redirect('order_failer', orderid=request.POST.get('orderid'))
 
 
-@login_required
+@login_required(login_url='login')
 def order_failer(request, orderid):
     order = Orders.objects.get(id=orderid)
     # order.status = 'orderfailed'
@@ -523,7 +523,7 @@ def order_failer(request, orderid):
     return render(request, 'order/order_failer.html', context)
 
 
-@login_required
+@login_required(login_url='login')
 def incompleteorder(request):
     incomplete_orders = Orders.objects.filter(
         user=request.user,
@@ -536,7 +536,7 @@ def incompleteorder(request):
     return render(request, 'order/incompleteorder.html', context)
 
 
-@login_required
+@login_required(login_url='login')
 def delete_myorder(request, orderid):
     try:
         order = get_object_or_404(Orders, id=orderid, user=request.user)
@@ -572,7 +572,7 @@ def delete_myorder(request, orderid):
     return redirect('myorders')
 
 
-@login_required
+@login_required(login_url='login')
 def del_incomplete_order(request, orderid):
     try:
         order = get_object_or_404(Orders, id=orderid, user=request.user)
@@ -602,7 +602,7 @@ def del_incomplete_order(request, orderid):
 # to download the invoice
 
 
-@login_required
+@login_required(login_url='login')
 def download_invoice(request, order_id):
     try:
         order = get_object_or_404(Orders, id=order_id)

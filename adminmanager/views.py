@@ -9,6 +9,7 @@ from orders.models import Orders, OrderItem
 from authapp.models import Wallet, Transaction
 # from orders.models import Payment, OrderItem
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import cache_control, never_cache
 from .forms import VariantForm
 from django.db.models import Avg, Sum, Count, Q
@@ -954,7 +955,7 @@ def export_to_excel(context):
     return response
 
 
-
+@login_required(login_url='login')
 def export_to_pdf(context):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename=sales_report.pdf'
@@ -1137,6 +1138,7 @@ def export_to_pdf(context):
     return response
 
 
+@login_required(login_url='login')
 def add_product_offer(request):
     if request.method == "POST":
         form = ProductOfferForm(request.POST)
@@ -1160,6 +1162,7 @@ def add_product_offer(request):
     return render(request, 'admin/add_product_offers.html', {'form': form})
 
 
+@login_required(login_url='login')
 def product_offers_list(request):
     product_offers = ProductOffers.objects.all()
     context = {
@@ -1168,6 +1171,7 @@ def product_offers_list(request):
     return render(request, 'admin/product_offer_list.html', context)
 
 
+@login_required(login_url='login')
 def edit_product_offer(request, offer_id):
     offer = get_object_or_404(ProductOffers, id=offer_id)
     if request.method == "POST":
@@ -1181,7 +1185,7 @@ def edit_product_offer(request, offer_id):
 
     return render(request, 'admin/edit_product_offer.html', {'form': form})
 
-
+@login_required(login_url='login')
 def delete_product_offer(request, offer_id):
     offer = get_object_or_404(ProductOffers, id=offer_id)
     offer.active = False
@@ -1190,6 +1194,7 @@ def delete_product_offer(request, offer_id):
     return redirect('product_offers_list')
 
 
+@login_required(login_url='login')
 def undo_delete_product_offer(request, offer_id):
     offer = get_object_or_404(ProductOffers, id=offer_id)
     offer.active = True
@@ -1198,7 +1203,7 @@ def undo_delete_product_offer(request, offer_id):
 
     return redirect('product_offers_list')
 
-
+@login_required(login_url='login')
 def add_category_offer(request):
     if request.method == "POST":
         form = CategoryOfferform(request.POST)
@@ -1220,7 +1225,7 @@ def add_category_offer(request):
 
     return render(request, 'admin/add_category_offers.html', {'form': form})
 
-
+@login_required(login_url='login')
 def category_offers_list(request):
     category_offers = CategoryOffers.objects.all()
     context = {
@@ -1228,7 +1233,7 @@ def category_offers_list(request):
     }
     return render(request, 'admin/category_offer_list.html', context)
 
-
+@login_required(login_url='login')
 def edit_category_offer(request, offer_id):
     offer = get_object_or_404(CategoryOffers, id=offer_id)
     if request.method == "POST":
@@ -1242,7 +1247,7 @@ def edit_category_offer(request, offer_id):
 
     return render(request, 'admin/edit_category_offer.html', {'form': form})
 
-
+@login_required(login_url='login')
 def delete_category_offer(request, offer_id):
     offer = get_object_or_404(CategoryOffers, id=offer_id)
     offer.active = False
@@ -1251,6 +1256,7 @@ def delete_category_offer(request, offer_id):
     return redirect('category_offers_list')
 
 
+@login_required(login_url='login')
 def undo_delete_category_offer(request, offer_id):
     offer = get_object_or_404(CategoryOffers, id=offer_id)
     offer.active = True
