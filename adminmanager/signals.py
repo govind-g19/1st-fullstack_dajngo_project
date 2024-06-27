@@ -13,12 +13,14 @@ def low_value_reminder(sender, instance, **kwargs):
         product_name = instance.product.product_name
         subject = f"Low stock alert for {product_name}"
         message = (
-            f"The stock for {product_name} with RAM: {instance.ram} and ROM: {instance.internal_memory} "
+            f'''The stock for {product_name} with
+              RAM: {instance.ram} and ROM: {instance.internal_memory} '''
             f"has dropped to {instance.quantity}. Please restock the product."
         )
         # Send the email
         try:
-            send_mail(subject, message, settings.EMAIL_HOST_USER, [settings.ADMIN_EMAIL])
+            send_mail(subject, message, settings.EMAIL_HOST_USER,
+                      [settings.ADMIN_EMAIL])
         except Exception as e:
             # Handle the exception (e.g., log the error)
             print(f"Failed to send low stock alert email: {e}")

@@ -70,7 +70,6 @@ def shop(request):
         variants = variants.filter(internal_memory=rom_filter)
     if category_filter:
         variants = variants.filter(product__category__id=category_filter)
-    
 
     # Apply sorting if provided
     if sort_by == 'name_asc':
@@ -131,8 +130,8 @@ def shop(request):
         'sort_by': sort_by,
         'search_query': search_query,
         'paginator': paginator,
-        'variant.product.offer': variant.product.offer,
-        'variant.product.category.offer': variant.product.category.offer
+        # 'variant.product.offer': variant.product.offer,
+        # 'variant.product.category.offer': variant.product.category.offer
     }
     return render(request, 'main/shop.html', context)
 
@@ -201,7 +200,6 @@ def product_details(request, product_id):
     current_time = timezone.now()
     if selected_variant:
         offer_price, combined_discount, product_offer, catogory_offer = offer_calculaton(selected_variant.id, current_time)
-        print(catogory_offer)
         if product.product_offer and product.product_offer.active and product.product_offer.valid_from <= current_time <= product.product_offer.valid_to:
             days_remaining = int((
                 product.product_offer.valid_to - current_time).days)
@@ -252,7 +250,6 @@ def offer_calculaton(variant_id, current_time):
             vairant.product.product_offer.valid_from <= current_time <= vairant.product.product_offer.valid_to):
         combined_discount += vairant.product.product_offer.discount
         product_offer = vairant.product.product_offer
-        print(combined_discount)
 
     if (final_price and
             vairant.product.category.category_offer and
@@ -260,7 +257,6 @@ def offer_calculaton(variant_id, current_time):
             vairant.product.category.category_offer.valid_from <= current_time <= vairant.product.category.category_offer.valid_to):
         combined_discount += vairant.product.category.category_offer.discount
         catogory_offer = vairant.product.category.category_offer
-        print(combined_discount)
 
     if combined_discount > 0:
         offer_price = final_price - (final_price * combined_discount/100)

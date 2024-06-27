@@ -13,5 +13,9 @@ from django.conf import settings
 def send_query_notification(sender, instance, created, **kwargs):
     if created:
         subject = 'New User Query'
-        message = f'Hello Admin,\n\nYou have received a new query from {instance.user.username} ({instance.user.email}).\n\nQuery: {instance.query}\n\nPlease respond to the user at their registered email address.\n\nRegards,\nYour Website Team'
-        send_mail(subject, message, settings.EMAIL_HOST_USER, [settings.ADMIN_EMAIL])
+        message = f'''Hello Admin,\n\nYou have received a new query from
+          {instance.user.username} ({instance.user.email}).\n\nQuery:
+            {instance.query}\n\nPlease respond to the user at their registered
+              email address.\n\nRegards,\nYour Website Team'''
+        send_mail(
+            subject, message, settings.EMAIL_HOST_USER, [settings.ADMIN_EMAIL])

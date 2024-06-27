@@ -54,6 +54,7 @@
         </div>
         <hr>
         <!-- Selected Address -->
+        {% if default_address  %}
         <div class="col-md-12 mt-4">
           <div class="box">
             <h5>Selected Address:</h5>
@@ -67,45 +68,47 @@
             </div>
           </div>
         </div>
+        {% endif %}
+
         <hr>
         <!-- Address selection and form -->
         <div class="col-md-12">
           <div class="box">
-            {% if default_address %}
-            <button class="btn btn-dark collapsed" style="border-radius: 35px;" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-              Select Shipping Address
-            </button>
-            <br>
-            <div class="collapse" id="collapseTwo">
-              <div class="card-body">
-                <div class="shipping-address-form">
-                  {% for address in address_list %}
-                  <!-- Address cards -->
-                  <div class="card mb-2">
-                    <div class="card-body">
-                      <h5 class="card-title">{{ address.first_name }} {{ address.second_name }}</h5>
-                      <p class="card-text">{{ address.house_address }}, {{ address.city }}, {{ address.state }} {{ address.pin_code }}</p>
-                      <p class="card-text">Phone: {{ address.phone_number }}</p>
-                      <p class="card-text">Landmark: {{ address.land_mark }}</p>
-                      <div class="btn-group" role="group" aria-label="Address Actions">
-                        <a href="{% url 'edit_address' address_id=address.id %}?source=checkout" class="text-warning ms-2">
-                          <span class="material-symbols-outlined">edit</span>
-                        </a>
-                        {% if address.is_primary %}
-                          <a class="text-success  ms-3"><span class="material-symbols-outlined">radio_button_checked</span></a>
-                        {% else %}
-                          <a href="{% url 'default_address' address_id=address.id %}" class="text-dark ms-3"><span class="material-symbols-outlined">radio_button_checked</span></a>
-                        {% endif %}
+            {% if default_address  %}
+              <button class="btn btn-dark collapsed" style="border-radius: 35px;" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                Select Shipping Address
+              </button>
+              <br>
+              <div class="collapse" id="collapseTwo">
+                <div class="card-body">
+                  <div class="shipping-address-form">
+                    {% for address in address_list %}
+                    <!-- Address cards -->
+                    <div class="card mb-2">
+                      <div class="card-body">
+                        <h5 class="card-title">{{ address.first_name }} {{ address.second_name }}</h5>
+                        <p class="card-text">{{ address.house_address }}, {{ address.city }}, {{ address.state }} {{ address.pin_code }}</p>
+                        <p class="card-text">Phone: {{ address.phone_number }}</p>
+                        <p class="card-text">Landmark: {{ address.land_mark }}</p>
+                        <div class="btn-group" role="group" aria-label="Address Actions">
+                          <a href="{% url 'edit_address' address_id=address.id %}?source=checkout" class="text-warning ms-2">
+                            <span class="material-symbols-outlined">edit</span>
+                          </a>
+                          {% if address.is_primary %}
+                            <a class="text-success  ms-3"><span class="material-symbols-outlined">radio_button_checked</span></a>
+                          {% else %}
+                            <a href="{% url 'default_address' address_id=address.id %}" class="text-dark ms-3"><span class="material-symbols-outlined">radio_button_checked</span></a>
+                          {% endif %}
+                        </div>
                       </div>
                     </div>
+                    {% endfor %}
+                    <!-- Add Address button -->
+                    <br>
+                    <a href="{% url 'page_direct' %}" class="btn btn-dark" style="border-radius: 35px;">Add Address</a>
                   </div>
-                  {% endfor %}
-                  <!-- Add Address button -->
-                  <br>
-                  <a href="{% url 'page_direct' %}" class="btn btn-dark" style="border-radius: 35px;">Add Address</a>
                 </div>
               </div>
-            </div>
             {% else %}
             <h5>No Addresses Found</h5>
             <a href="{% url 'page_direct' %}" class="btn btn-dark" style="border-radius: 35px;">Add Address</a>
@@ -249,9 +252,6 @@
                         {% endfor %}
                         {% comment %} loder  {% endcomment %}
                         <div id="loader" style="display: none; text-align: center;">
-                          <div class="spinner-grow" role="status">
-                            <span class="visually-">Loading...</span>
-                          </div>
                           <div class="spinner-grow" role="status">
                             <span class="visually-hidden">Loading...</span>
                           </div>

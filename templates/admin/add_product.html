@@ -52,7 +52,7 @@
             </div>
             <div class="mb-3">
                 <label class="form-label" for="category">Product Offer</label>
-                <select class="form-select" id="product_offer_id" name="product_offer_id" required>
+                <select class="form-select" id="product_offer_id" name="product_offer_id">
                     <option value="" disabled selected>Select Product Offer</option>
                     {% for offer in product_offers %}
                     <option value="{{ offer.id }}" class='text-dark'>{{ offer.product_offer }}</option>

@@ -8,7 +8,8 @@ from decimal import Decimal
 
 
 class Referral(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='referral')
+    user = models.OneToOneField(User, on_delete=models.CASCADE,
+                                related_name='referral')
     referral_code = models.UUIDField(default=uuid.uuid4,
                                      editable=False,
                                      unique=True)

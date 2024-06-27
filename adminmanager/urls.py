@@ -13,7 +13,7 @@ urlpatterns = [
     path('admin-index',
          views.admin_index,
          name='admin-index'),
-    # users 
+    # users
     path('admin-user',
          views.admin_user_list,
          name='admin-user'),

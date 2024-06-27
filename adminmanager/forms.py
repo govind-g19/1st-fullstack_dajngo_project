@@ -10,12 +10,17 @@ class VariantForm(forms.ModelForm):
         model = Variant
         fields = '__all__'
 
+    # Extract product_id from kwargs if available
     def __init__(self, *args, **kwargs):
         product_id = kwargs.pop('product_id', None)
         super().__init__(*args, **kwargs)
+
+        '''Customize the product field's queryset and
+          initial value based on product_id'''
         if product_id:
             product = Product.objects.get(id=product_id)
-            self.fields['product'].queryset = Product.objects.filter(id=product_id)
+            self.fields['product'].queryset = Product.objects.filter(
+                id=product_id)
             self.fields['product'].initial = product
 
     def clean(self):
@@ -35,9 +40,12 @@ class VariantForm(forms.ModelForm):
                 internal_memory=internal_memory
             )
             if self.instance and self.instance.pk:
-                existing_variant = existing_variant.exclude(pk=self.instance.pk)
+                existing_variant = existing_variant.exclude(
+                    pk=self.instance.pk)
             if existing_variant.exists():
-                raise ValidationError('A variant with the same product, RAM, and internal memory already exists.')
+                raise ValidationError('''A variant with the same product,
+                                       RAM, and internal memory already
+                                      exists.''')
 
         # Validate final_price
         if final_price is not None and final_price < 0:
@@ -49,11 +57,14 @@ class VariantForm(forms.ModelForm):
 
         # Validate low_stock_threshold
         if low_stock_threshold is not None and low_stock_threshold < 0:
-            raise ValidationError("Low stock threshold can't be less than zero.")
-
-        if low_stock_threshold is not None and quantity is not None and low_stock_threshold > quantity:
             raise ValidationError(
-                'Low stock threshold should be less than or equal to quantity.')
+                "Low stock threshold can't be less than zero.")
+
+        if (low_stock_threshold is not None and
+           quantity is not None and
+           low_stock_threshold > quantity):
+            raise ValidationError(
+                'Low stock threshold should be less than or equal to quantity')
 
         return cleaned_data
 
@@ -77,6 +88,7 @@ class ReviewRatingForm(forms.ModelForm):
         }
 
 
+# for admins to update status
 class UpdateOrderStatusForm(forms.ModelForm):
     STATUS_CHOICES = (
         ('Ordered', 'Ordered'),
@@ -90,11 +102,13 @@ class UpdateOrderStatusForm(forms.ModelForm):
         model = Orders
         fields = ['status']
         widgets = {
-            'status': forms.Select(attrs={'class': 'form-select rounded-2',
-                                          'style': 'width: 250px; height: 90px;'})
+            'status': forms.Select(attrs={
+                'class': 'form-select rounded-2',
+                'style': 'width: 250px; height: 90px;'})
         }
 
 
+# to add the product offer
 class ProductOfferForm(forms.ModelForm):
     class Meta:
         model = ProductOffers
@@ -120,12 +134,14 @@ class ProductOfferForm(forms.ModelForm):
         # Validate date range
         if valid_from and valid_to:
             if valid_from > valid_to:
-                self.add_error('valid_to', "Valid from date cannot be after valid to date")
+                self.add_error('valid_to', '''Valid from date cannot
+                                be after valid to date''')
 
         # Validate discount range
         if discount is not None:
             if discount < 0 or discount > 100:
-                self.add_error('discount', "Discount must be between 0 and 100")
+                self.add_error('discount',
+                               "Discount must be between 0 and 100")
 
         # Check for existing similar offer
         existing_offer = ProductOffers.objects.filter(
@@ -141,6 +157,7 @@ class ProductOfferForm(forms.ModelForm):
         return cleaned_data
 
 
+# To add the category offers
 class CategoryOfferform(forms.ModelForm):
     class Meta:
         model = CategoryOffers
@@ -177,19 +194,22 @@ class CategoryOfferform(forms.ModelForm):
         # Check if valid_from is not later than valid_to
         if valid_from and valid_to:
             if valid_from > valid_to:
-                self.add_error('valid_from', 'Valid from date should not be later than valid to date.')
+                self.add_error('valid_from', '''Valid from date should not be
+                                later than valid to date.''')
 
         # Validate discount range (0 to 100)
         if discount is not None:
             if discount < 0 or discount > 100:
-                self.add_error('discount', 'Discount should be between 0 and 100.')
+                self.add_error('discount',
+                               'Discount should be between 0 and 100.')
 
         # Validate category_offer contains only alphabetic characters
         if category_offer:
             if not category_offer.isalpha():
-                self.add_error('category_offer', 'Category offer name should only contain alphabetic characters.')
+                self.add_error('category_offer', '''Category offer name should
+                               only contain alphabetic characters.''')
 
-        # Check for existing offers with overlapping date ranges and same category_offer
+        # Check for existing offers with overlapping date ranges
         if valid_from and valid_to and category_offer:
             existing_offer = CategoryOffers.objects.filter(
                 valid_from__lte=valid_to,
@@ -199,6 +219,7 @@ class CategoryOfferform(forms.ModelForm):
             if self.instance and self.instance.pk:
                 existing_offer = existing_offer.exclude(pk=self.instance.pk)
             if existing_offer.exists():
-                self.add_error(None, 'A similar offer already exists for this date range and category.')
+                self.add_error(None, '''A similar offer already exists for
+                                this date range and category.''')
 
         return cleaned_data

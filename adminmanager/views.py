@@ -21,19 +21,13 @@ from django.contrib.auth.decorators import user_passes_test
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 import pandas as pd
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 # Include these imports if not already included
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.platypus import TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
-# from reportlab.pdfgen import canvas
-# from reportlab.lib.units import inch
-# from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-# import os
-# import io
-# from django.template import loader
 
 
 def superuser_required(function=None):
@@ -68,8 +62,6 @@ def admin_loogin(request):
     return render(request, "admin/admin-login.html")
 
 
-@never_cache
-@superuser_required
 def admin_logout(request):
     logout(request)
     messages.success(request, "Log in to enjoy more")
@@ -96,7 +88,18 @@ def admin_user_list(request):
         users = User.objects.filter(is_superuser=True)
     else:
         users = User.objects.all().order_by("id").exclude(id=request.user.id)
-    return render(request, "admin/admin-user.html", {"users": users})
+    # Pagination
+    paginator = Paginator(users, 8)
+    page = request.GET.get('page')
+    try:
+        users_page = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver the first page.
+        users_page = paginator.page(1)
+    except EmptyPage:
+        # If the page is out of range (e.g., 9999), deliver the last page.
+        users_page = paginator.page(paginator.num_pages)
+    return render(request, "admin/admin-user.html", {"users": users_page})
 
 
 @superuser_required
@@ -144,9 +147,88 @@ def unblock_user(request, id):
 
 
 # category
+@login_required(login_url='login')
+@superuser_required
+def add_category_offer(request):
+    if request.method == "POST":
+        form = CategoryOfferform(request.POST)
+        try:
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Category offer added successfully.")
+                return redirect('category_offers_list')
+            else:
+                # If form is not valid, re-render the form with error messages
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"{field}: {error}")
+        except Exception as e:
+            # Log the exception or handle it appropriately
+            messages.error(request, f"There was an error while saving the category offer: {e}")
+    else:
+        form = CategoryOfferform()
+
+    return render(request, 'admin/add_category_offers.html', {'form': form})
+
+
+@login_required(login_url='login')
+@superuser_required
+def category_offers_list(request):
+    category_offers = CategoryOffers.objects.all().order_by('-id')
+    context = {
+        'category_offers': category_offers
+    }
+    return render(request, 'admin/category_offer_list.html', context)
+
+
+@login_required(login_url='login')
+def edit_category_offer(request, offer_id):
+    offer = get_object_or_404(CategoryOffers, id=offer_id)
+    if request.method == "POST":
+        form = CategoryOfferform(request.POST, instance=offer)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'category Offer is Updated')
+            return redirect('category_offers_list')
+    else:
+        form = CategoryOfferform(instance=offer)
+
+    return render(request, 'admin/edit_category_offer.html', {'form': form})
+
+
+@login_required(login_url='login')
+def delete_category_offer(request, offer_id):
+    offer = get_object_or_404(CategoryOffers, id=offer_id)
+    offer.active = False
+    offer.save()
+    messages.success(request, 'The offer is deactivated')
+    return redirect('category_offers_list')
+
+
+@login_required(login_url='login')
+def undo_delete_category_offer(request, offer_id):
+    offer = get_object_or_404(CategoryOffers, id=offer_id)
+    offer.active = True
+    offer.save()
+    messages.success(request, 'The offer is activated')
+
+    return redirect('category_offers_list')
+
+
 @superuser_required
 def Category_List(request):
-    context = {"cat": Category.objects.all()}
+    category = Category.objects.all().order_by('-id')
+    # Pagination
+    paginator = Paginator(category, 5)
+    page = request.GET.get('page')
+    try:
+        category_page = paginator.page(page)
+    except PageNotAnInteger:
+        category_page = paginator.page(1)
+    except EmptyPage:
+        category_page = paginator.page(paginator.num_pages)
+
+    context = {"cat": category_page}
     return render(request, "admin/category_list.html", context)
 
 
@@ -160,7 +242,8 @@ def Edit_Cat(request, id):
         category_offer_id = request.POST.get("category_offer_id")
         # to pass all the category offers
         if category_offer_id:
-            category_offer = get_object_or_404(CategoryOffers, id=category_offer_id)
+            category_offer = get_object_or_404(CategoryOffers,
+                                               id=category_offer_id)
         else:
             category_offer = None
         # category offer validation
@@ -216,7 +299,8 @@ def add_category(request):
         # Ensure category_offer_id is valid
         category_offer = None
         if category_offer_id:
-            category_offer = get_object_or_404(CategoryOffers, id=category_offer_id)
+            category_offer = get_object_or_404(CategoryOffers,
+                                               id=category_offer_id)
 
         # Offer validations
         if category_offer:
@@ -225,11 +309,16 @@ def add_category(request):
             valid_to_date = category_offer.valid_to
 
             if not (valid_from_date <= now <= valid_to_date):
-                messages.error(request, f'The offer {category_offer.category_offer} is not valid within the current date or time.')
+                messages.error(request,
+                               f'''The offer {category_offer.category_offer}
+                                 is not valid within the current date or time
+                                 .''')
                 return redirect('add_category')
 
             if not category_offer.active:
-                messages.error(request, f'The offer {category_offer.category_offer} is not active.')
+                messages.error(request, f'''The offer
+                                {category_offer.category_offer}
+                                  is not active.''')
                 return redirect('add_category')
 
         # Check for blank spaces and ensure the name is alphanumeric
@@ -253,7 +342,8 @@ def add_category(request):
             messages.success(request, "Category added successfully.")
             return redirect('category')
         except Exception as e:
-            messages.error(request, f'Error occurred while adding category: {str(e)}')
+            messages.error(request,
+                           f'Error occurred while adding category: {str(e)}')
             return render(request, "admin/add_category.html")
 
     # Handle GET request
@@ -301,8 +391,7 @@ def undo_soft_delete_category(request, id):
 @superuser_required
 def Product_list(request):
     categories = Category.objects.all()
-    products = Product.objects.all()  # Initially fetch all products
-
+    products = Product.objects.all().order_by('-id')
     selected_category_id = request.GET.get(
         "category_id"
     )  # Get selected category ID from query parameters
@@ -310,10 +399,18 @@ def Product_list(request):
     if selected_category_id:
         # Filter products based on the selected category
         products = Product.objects.filter(category__id=selected_category_id)
+    paginator = Paginator(products, 4)
+    page = request.GET.get('page')
+    try:
+        products_page = paginator.page(page)
+    except PageNotAnInteger:
+        products_page = paginator.page(1)
+    except EmptyPage:
+        products_page = paginator.page(paginator.num_pages)
 
     context = {
         "categories": categories,
-        "products": products,
+        "products": products_page,
     }
     return render(request, "admin/product_list.html", context)
 
@@ -327,22 +424,25 @@ def Add_Product(request):
         category_id = request.POST.get("category")
         description = request.POST.get("description")
         product_offer_id = request.POST.get("product_offer_id")
-
-        product_offer = get_object_or_404(ProductOffers, id=product_offer_id)
+        product_offer = None
+        if product_offer_id:
+            product_offer = get_object_or_404(ProductOffers, id=product_offer_id)
         # offer validations
-        if product_offer:
-            now = timezone.now()
-            valid_from_date = product_offer.valid_from
-            valid_to_date = product_offer.valid_to
+            if product_offer:
+                now = timezone.now()
+                valid_from_date = product_offer.valid_from
+                valid_to_date = product_offer.valid_to
 
-            if not (valid_from_date <= now <= valid_to_date):
-                messages.error(request, f'''{product_offer} offer is not valid
-                                within the current date or time.''')
-                return redirect("/adminmanager/add_product")
-            if not product_offer.active:
-                messages.error(request,
-                               f'{product_offer} offer is not active.')
-                return redirect("/adminmanager/add_product")
+                if not (valid_from_date <= now <= valid_to_date):
+                    messages.error(request, f'''{product_offer} offer is not valid
+                                    within the current date or time.''')
+                    return redirect("/adminmanager/add_product")
+                if not product_offer.active:
+                    messages.error(request,
+                                   f'{product_offer} offer is not active.')
+                    return redirect("/adminmanager/add_product")
+            else:
+                product_offer = None
 
         # Check if all required fields are provided
         if not all([product_name, category_id, description]):
@@ -440,7 +540,7 @@ def Edit_Product(request, id):
         except Category.DoesNotExist:
             messages.error(request, "Selected category does not exist.")
             return redirect(f"/adminmanager/edit_product/{id}/")
-
+        # To save the product
         product.product_name = product_name
         product.category = category
         product.description = description
@@ -492,17 +592,15 @@ def view_variant(request, product_id):
     product = get_object_or_404(Product, id=product_id)
 
     # Retrieve all variants associated with the product
-    variants = Variant.objects.filter(product=product)
+    variants = Variant.objects.filter(product=product).order_by('-id')
     if not variants.exists():  # Check if the QuerySet is empty
         return redirect('add_variant', product_id=product_id)
     variant_ratings = {}
     for variant in variants:
         reviews = ReviewRating.objects.filter(variant=variant)
         average_rating = reviews.aggregate(Avg('rating'))['rating__avg']
-        print(average_rating)
         variant_ratings[variant.id] = average_rating
-        print(f"Reviews for variant {variant.id}: {reviews}")
-        print(f"Average rating for variant {variant.id}: {average_rating}")
+        
     context = {
         'product': product,
         'variants': variants,
@@ -575,7 +673,8 @@ def add_variant(request, product_id):
                 internal_memory=cleaned_data['internal_memory']
             )
             if existing_variant.exists():
-                form.add_error(None, 'Variant with the same RAM and internal memory already exists for this product.')
+                form.add_error(None, '''Variant with the same RAM and internal
+                                memory already exists for this product.''')
             else:
                 variant = form.save(commit=False)
                 variant.product = products
@@ -605,7 +704,8 @@ def edit_varient(request, id):
                 ram=cleaned_data['ram'],
                 internal_memory=cleaned_data['internal_memory']
             )
-            if existing_variant.exists() and existing_variant.first().id != variant.id:
+            if (existing_variant.exists() and
+               existing_variant.first().id != variant.id):
                 messages.error(request, 'variant already excists')
                 return redirect('edit_varient', id=variant.id)
             else:
@@ -630,7 +730,6 @@ def delete_variant(request, product_id):
     variants = get_object_or_404(Variant, pk=product_id)
     product = variants.product
     variants.deleted = True
-    print("delete=true")
     variants.is_available = False
     variants.save()
     return redirect("view_variant",  product_id=product.id)
@@ -731,7 +830,8 @@ def dashboard(request):
             start_date = end_date - timedelta(days=7)
 
         recent_orders = Orders.objects.filter(
-            is_active=True, order_date__range=[start_date, end_date]).order_by('-order_date')[:10]
+            is_active=True, order_date__range=[
+                start_date, end_date]).order_by('-order_date')[:10]
 
         last_year = end_date - timedelta(days=365)
         yearly_order_counts = (
@@ -777,7 +877,8 @@ def dashboard(request):
 
         return render(request, 'admin/dashboard.html', context)
     else:
-        return HttpResponseForbidden("You don't have permission to access this page.")
+        return HttpResponseForbidden(
+            "You don't have permission to access this page.")
 
 
 def update_order_status(request, order_id):
@@ -832,27 +933,37 @@ def sales_report(request):
         start_date = parse_date(start_date_param)
         end_date = parse_date(end_date_param)
 
-    # sales_data = Orders.objects.filter(is_active=True, order_date__range=[start_date, end_date])
-    sales_data = Orders.objects.filter(order_date__range=[start_date, end_date])
-    print(sales_data)
+    sales_data = Orders.objects.filter(order_date__range=[
+        start_date, end_date])
 
-    total_revenue = sales_data.aggregate(total_sales=Sum('grand_total'))['total_sales']
+    total_revenue = sales_data.aggregate(total_sales=Sum('grand_total'))[
+        'total_sales']
     total_orders = sales_data.count()
-    total_units_sold = OrderItem.objects.filter(order__in=sales_data).aggregate(total_units=Sum('quantity'))['total_units']
+    total_units_sold = OrderItem.objects.filter(
+        order__in=sales_data).aggregate(total_units=Sum(
+            'quantity'))['total_units']
 
     average_order_value = total_revenue / total_orders if total_orders > 0 else 0
     average_order_value = round(average_order_value, 2)
 
-    top_products = OrderItem.objects.filter(order__in=sales_data).values('product__product_name').annotate(total_quantity=Sum('quantity')).order_by('-total_quantity')[:5]
+    top_products = OrderItem.objects.filter(
+        order__in=sales_data).values('product__product_name').annotate(
+            total_quantity=Sum('quantity')).order_by('-total_quantity')[:5]
 
-    product_variant_sales = OrderItem.objects.filter(order__in=sales_data).values(
-        'variant__id', 'variant__ram', 'variant__internal_memory', 'product__product_name'
+    product_variant_sales = OrderItem.objects.filter(
+        order__in=sales_data).values(
+        'variant__id', 'variant__ram', 'variant__internal_memory',
+        'product__product_name'
     ).annotate(
         total_revenue=Sum('price'),
         total_units=Sum('quantity')
     ).order_by('-total_revenue')
 
-    category_sales = OrderItem.objects.filter(order__in=sales_data).values('product__category__category_name').annotate(total_revenue=Sum('price'), total_units=Sum('quantity')).order_by('-total_revenue')
+    category_sales = OrderItem.objects.filter(
+        order__in=sales_data).values(
+            'product__category__category_name').annotate(
+                total_revenue=Sum('price'), total_units=Sum(
+                    'quantity')).order_by('-total_revenue')
 
     items_with_offer = OrderItem.objects.filter(
         order__in=sales_data,
@@ -862,7 +973,6 @@ def sales_report(request):
 
     items_with_coupons = Orders.objects.filter(
         Q(is_active=True, order_date__range=[start_date, end_date]) & (Q(coupon_discount__gt=0)))
-    print("the offer product is", items_with_offer)
 
     order_details = Orders.objects.filter(order_date__range=[start_date, end_date]).select_related('user').prefetch_related('orderitem_set')
 
@@ -1138,6 +1248,7 @@ def export_to_pdf(context):
     return response
 
 
+# Product Offer
 @login_required(login_url='login')
 def add_product_offer(request):
     if request.method == "POST":
@@ -1185,6 +1296,7 @@ def edit_product_offer(request, offer_id):
 
     return render(request, 'admin/edit_product_offer.html', {'form': form})
 
+
 @login_required(login_url='login')
 def delete_product_offer(request, offer_id):
     offer = get_object_or_404(ProductOffers, id=offer_id)
@@ -1202,65 +1314,3 @@ def undo_delete_product_offer(request, offer_id):
     messages.success(request, 'The offer is activated')
 
     return redirect('product_offers_list')
-
-@login_required(login_url='login')
-def add_category_offer(request):
-    if request.method == "POST":
-        form = CategoryOfferform(request.POST)
-        try:
-            if form.is_valid():
-                form.save()
-                messages.success(request, "Category offer added successfully.")
-                return redirect('category_offers_list')
-            else:
-                # If form is not valid, re-render the form with error messages
-                for field, errors in form.errors.items():
-                    for error in errors:
-                        messages.error(request, f"{field}: {error}")
-        except Exception as e:
-            # Log the exception or handle it appropriately
-            messages.error(request, f"There was an error while saving the category offer: {e}")
-    else:
-        form = CategoryOfferform()
-
-    return render(request, 'admin/add_category_offers.html', {'form': form})
-
-@login_required(login_url='login')
-def category_offers_list(request):
-    category_offers = CategoryOffers.objects.all()
-    context = {
-        'category_offers': category_offers
-    }
-    return render(request, 'admin/category_offer_list.html', context)
-
-@login_required(login_url='login')
-def edit_category_offer(request, offer_id):
-    offer = get_object_or_404(CategoryOffers, id=offer_id)
-    if request.method == "POST":
-        form = CategoryOfferform(request.POST, instance=offer)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'category Offer is Updated')
-            return redirect('category_offers_list')
-    else:
-        form = CategoryOfferform(instance=offer)
-
-    return render(request, 'admin/edit_category_offer.html', {'form': form})
-
-@login_required(login_url='login')
-def delete_category_offer(request, offer_id):
-    offer = get_object_or_404(CategoryOffers, id=offer_id)
-    offer.active = False
-    offer.save()
-    messages.success(request, 'The offer is deactivated')
-    return redirect('category_offers_list')
-
-
-@login_required(login_url='login')
-def undo_delete_category_offer(request, offer_id):
-    offer = get_object_or_404(CategoryOffers, id=offer_id)
-    offer.active = True
-    offer.save()
-    messages.success(request, 'The offer is activated')
-
-    return redirect('category_offers_list')

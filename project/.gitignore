@@ -1,6 +1,8 @@
- # Ignore environment variables file
+# Ignore environment variables file
 .env
 
 # Ignore media files
 media/
 
+# Ignore collected static files
+staticfiles/

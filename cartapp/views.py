@@ -264,7 +264,7 @@ def check_out(request):
     shipping = 0
     grand_total = 0
     cart_items = None
-    coupon_discount=0
+    coupon_discount = 0
     discount_amount = 0
     total_discount = 0
     offer_price = 0

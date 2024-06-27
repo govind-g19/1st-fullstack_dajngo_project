@@ -3,12 +3,12 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Create your models here.
+
+
 # Catagory
-
-
 class CategoryOffers(models.Model):
     category_offer = models.CharField(max_length=100)
-    discount = models.IntegerField(default=0)
+    discount = models.IntegerField(default=0)  # Will be % value
     valid_from = models.DateTimeField()
     valid_to = models.DateTimeField()
     active = models.BooleanField(default=True)
@@ -35,7 +35,6 @@ class Category(models.Model):
 
 
 # Product
-
 class ProductOffers(models.Model):
     product_offer = models.CharField(max_length=100)
     discount = models.IntegerField(default=0)
@@ -67,6 +66,7 @@ class Product(models.Model):
         return f"{self.product_name}"
 
 
+# Variant
 class Variant(models.Model):
     RAM_CHOICES = [
         ("4GB", "4GB"),
@@ -100,6 +100,7 @@ class Variant(models.Model):
         return f"{product_name} {self.ram} RAM, {self.internal_memory} Memory"
 
 
+# product Img
 class ProductImage(models.Model):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name="images"
@@ -110,6 +111,7 @@ class ProductImage(models.Model):
         return f"Image of {self.product.product_name}"
 
 
+# Review and Rating
 class ReviewRating(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     variant = models.ForeignKey(Variant, on_delete=models.CASCADE)

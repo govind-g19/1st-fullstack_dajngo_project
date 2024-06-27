@@ -456,9 +456,7 @@ def paymenthandler(request):
             razorpay_client = razorpay.Client(auth=(settings.KEY,
                                                     settings.SECRET))
             payment_id = request.POST.get('razorpay_payment_id', '')
-            print("payment_id", payment_id)
             razorpay_order_id = request.POST.get('razorpay_order_id', '')
-            print("razorpay_order_id", razorpay_order_id)
             signature = request.POST.get('razorpay_signature', '')
             params_dict = {
                 'razorpay_order_id': razorpay_order_id,
@@ -466,7 +464,6 @@ def paymenthandler(request):
                 'razorpay_signature': signature
             }
             orderid = request.POST.get('orderid')
-            print("the order id is", orderid)
             # verify the payment signature.
             razorpay_client.utility.verify_payment_signature(
                 params_dict)

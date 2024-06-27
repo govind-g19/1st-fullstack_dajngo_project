@@ -15,7 +15,7 @@ from django.utils.encoding import DjangoUnicodeDecodeError
 from .models import Address, Coupons, UserCoupons, Wallet, Transaction
 from .models import WishList, Referral
 # for the copon
-from django.db.models import Case, When, BooleanField
+# from django.db.models import Case, When, BooleanField
 from django.utils import timezone
 from adminmanager.models import Product, Variant
 from decimal import Decimal
@@ -65,33 +65,40 @@ def signup(request):
 
         # Password length check
         if len(password) < 8:
-            messages.warning(request, "Password must be at least 8 characters long.")
+            messages.warning(request,
+                             "Password must be at least 8 characters long.")
             return render(request, "auth/signup.html")
 
         # Password complexity check
         if not re.search(r'[A-Z]', password):
-            messages.warning(request, "Password must contain at least one uppercase letter.")
+            messages.warning(request, '''Password must contain at least one
+                              uppercase letter.''')
             return render(request, "auth/signup.html")
 
         if not re.search(r'[a-z]', password):
-            messages.warning(request, "Password must contain at least one lowercase letter.")
+            messages.warning(request, '''Password must contain at least one
+                              lowercase letter.''')
             return render(request, "auth/signup.html")
 
         if not re.search(r'[0-9]', password):
-            messages.warning(request, "Password must contain at least one digit.")
+            messages.warning(request,
+                             "Password must contain at least one digit.")
             return render(request, "auth/signup.html")
 
         if not re.search(r'[@$!%*?&]', password):
-            messages.warning(request, "Password must contain at least one special character (@, $, !, %, *, ?, &).")
+            messages.warning(request, '''Password must contain at least one
+                              special character (@, $, !, %, *, ?, &).''')
             return render(request, "auth/signup.html")
 
         # Username validation
         if len(uname) < 3 or len(uname) > 30:
-            messages.warning(request, "Username must be between 3 and 30 characters.")
+            messages.warning(request,
+                             "Username must be between 3 and 30 characters.")
             return render(request, "auth/signup.html")
 
         if not uname.isalnum():
-            messages.warning(request, "Username can only contain letters and numbers.")
+            messages.warning(request,
+                             "Username can only contain letters and numbers.")
             return render(request, "auth/signup.html")
 
         if not first_name.isalpha():
@@ -129,7 +136,8 @@ def signup(request):
                     return render(request, "auth/signup.html")
 
             except (ValueError, Referral.DoesNotExist):
-                messages.error(request, 'Invalid referral code format or referral code does not exist.')
+                messages.error(request, '''Invalid referral code format or
+                                referral code does not exist.''')
                 return render(request, "auth/signup.html")
 
         # Create a new User object
@@ -148,7 +156,8 @@ def signup(request):
         # Process referral rewards after user creation
         if referral_code and referred_by:
             # Reward referred_by with $100
-            referred_by_wallet, created = Wallet.objects.get_or_create(user=referred_by)
+            referred_by_wallet, created = Wallet.objects.get_or_create(
+                user=referred_by)
             referred_by_wallet.balance += 100
             referred_by_wallet.save()
             Transaction.objects.create(wallet=referred_by_wallet,
@@ -165,6 +174,8 @@ def signup(request):
 
             # Create Referral entry
             Referral.objects.create(user=user, referred_by=referred_by)
+        else:
+            Referral.objects.create(user=user, referred_by=None)
 
         current_site = get_current_site(request)
         email_subject = "Activate Your Account"
@@ -400,14 +411,12 @@ def edit_profile(request):
         if User.objects.filter(username=username).exclude(
                 id=current_user.id).exists():
             messages.error(request, "Username already taken")
-            print("to check username")
             return redirect('edit_profile')
 
         # Check if email is already in use
         if User.objects.filter(
                 email=email).exclude(id=current_user.id).exists():
             messages.error(request, 'This email is already in use')
-            print("to check email")
             return redirect('edit_profile')
 
         # Check if phone number is already in use
@@ -428,7 +437,6 @@ def edit_profile(request):
         # Update user's username and email
         current_user.username = username
         current_user.email = email
-        print("save thr user changes")
         current_user.save()
 
         # Update user's address if it exists
@@ -436,14 +444,12 @@ def edit_profile(request):
             address.phone_number = phone_number
             address.first_name = first_name
             address.second_name = second_name
-            print("save thr user address changes")
             address.save()
         else:
             messages.error(request, 'To complete the Profile fill the address')
             return redirect('manage_address')
 
         messages.success(request, "Profile updated successfully.")
-        print("redirect to view")
         return redirect('view_profile')
 
     context = {
@@ -508,10 +514,12 @@ def user_view_coupons(request):
     current_datetime = timezone.now()
 
     # Fetch all valid coupons
-    valid_coupons = Coupons.objects.filter(valid_from__lte=current_datetime, valid_to__gte=current_datetime)
+    valid_coupons = Coupons.objects.filter(
+        valid_from__lte=current_datetime, valid_to__gte=current_datetime)
 
     # Fetch used coupons for the current user
-    used_coupons = UserCoupons.objects.filter(user=request.user, is_used=True).values_list('coupon', flat=True)
+    used_coupons = UserCoupons.objects.filter(
+        user=request.user, is_used=True).values_list('coupon', flat=True)
 
     context = {
         'valid_coupons': valid_coupons,

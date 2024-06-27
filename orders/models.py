@@ -31,6 +31,7 @@ class Orders(models.Model):
                                 default=uuid.uuid4().hex[:8].upper(),
                                 unique=True)
     # to save the address and after the order is save it can't be changed
+    # models.JSONField()
     delivery_address = models.JSONField()
     order_total = models.DecimalField(max_digits=10,
                                       decimal_places=2, null=False, default=0)
