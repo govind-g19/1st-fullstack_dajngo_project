@@ -103,16 +103,19 @@ X_CONTENT_TYPE_OPTIONS = 'nosniff'
 #         'NAME': BASE_DIR / env('DATABASE_NAME'),
 #     }
 # }
+
 DATABASES = {
     'default': {
-        'ENGINE': env('DATABASE_ENGINE'),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': env('DATABASE_NAME'),
         'USER': env('DATABASE_USER'),
         'PASSWORD': env('DATABASE_PASSWORD'),
         'HOST': env('DATABASE_HOST'),
-        'PORT': env('DATABASE_PORT'),
+        'PORT': '5432',
     }
 }
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
