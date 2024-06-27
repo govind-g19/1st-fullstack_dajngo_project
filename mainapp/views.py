@@ -109,7 +109,6 @@ def shop(request):
 
         # Add offer price to the variant object
         variant.offer_price = offer_price
-        print(" offer is", variant.product.offer)
 
     # Pagination
     paginator = Paginator(variants, 6)  
