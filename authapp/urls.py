@@ -24,8 +24,10 @@ urlpatterns = [
     path('my_wallet', views.my_wallet, name='my_wallet'),
     path('withdraw_funds', views.withdraw_funds, name='withdraw_funds'),
     path('add_to_wallet', views.add_to_wallet, name='add_to_wallet'),
+    path('add_to_wallet_razorpay', views.add_to_wallet_razorpay,
+         name='add_to_wallet_razorpay'),
 
-    # wish list
+    # wish list 
     path('add_to_wishlist/<int:product_id>/',
          views.add_to_wishlist,
          name='add_to_wishlist'),

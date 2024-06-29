@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}My Wallet{% endblock title %}
+
+{% block pageheader %}
+<h2 class="page-font">Add To Wallet</h2>
+{% endblock pageheader %}
+
+{% block content %}
+{% load static %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-8">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <strong></strong> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="card col-6">
+            <div class="card-body text-secondary">
+                <h6 class="card-title">Credit via Razorpay</h6><br>
+                <form id="payment-form" method="POST" action="{% url 'add_to_wallet_razorpay' %}">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <label for="name" class="col-sm-2 col-form-label">User</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" id="name" value="{{ user.username }}" readonly>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <label for="amount" class="col-sm-2 col-form-label">Amount</label>
+                        <div class="col-sm-10">
+                            <input type="number" name="amount" class="form-control" id="amount" required>
+                        </div>
+                    </div>
+                    <button type="submit" id="pay-btn" class="btn btn-primary">Credit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+{% if razorpay_merchant_key and razorpay_amount and callback_url %}
+<script>
+    var options = {
+        "key": "{{ razorpay_merchant_key }}",
+        "amount": "{{ razorpay_amount }}",
+        "currency": "{{ currency }}",
+        "callback_url": "{{ callback_url }}",
+        "theme": {
+            "color": "#FF0000"
+        }
+    };
+    // Initialise Razorpay with the options.
+    var rzp1 = new Razorpay(options);
+
+    // Add event listener to the payment button.
+    document.getElementById("pay-btn").onclick = function (e) {
+        rzp1.open();
+        e.preventDefault();
+    };
+</script>
+{% endif %}
+{% endblock content %}

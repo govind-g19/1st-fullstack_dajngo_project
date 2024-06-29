@@ -15,13 +15,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, Http404
-from django.utils.timezone import now
 # Create your views here.
-from django.conf import settings
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, Http404
-from django.contrib.auth.decorators import login_required
-from django.conf import settings
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib import colors
