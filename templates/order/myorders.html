@@ -44,7 +44,7 @@
                                     <td>{{ order.payment_method }}</td>
                                     <td>
                                         {% if order.status == 'Cancelled' or order.status == 'Returned' %}
-                                            <button type="button" class="btn btn-danger btn-sm disabled">{{ order.status }}</button>
+                                            <button type="button" class="btn btn-dark btn-sm disabled"></button>
                                         {% elif order.status == 'Delivered' %}
                                             <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal{{ order.id }}">Return</button>
                                         {% else %}

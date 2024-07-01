@@ -3,7 +3,7 @@
 {% block title %} Order Report {% endblock title %}
 
 {% block pageheader %}
-<h2 class="page-font">Detail Report on {{order.order_id}} </h2>
+<h2 class="page-font">Detail Report on {{order.order_id}}</h2>
 {% endblock pageheader %}
 
 {% block content %}
@@ -20,43 +20,96 @@
         </div>
         <div class="col-12">
             <div class="card">
-                    <div class="card-body">
-                <h6><strong>User Details </strong></h6>
-                    <p class="card-text fw-medium">Username: {{order.user.username}}</p>
-                    <p class="card-text fw-medium">Full Name: {{order.delivery_address.first_name}} {{order.delivery_address.second_name}}</p>
-                    <p class="card-text fw-medium">Email: {{order.user.email}}</p>
-                    <p class="card-text fw-medium">Phone number: {{ order.delivery_address.phone_number}}</p>
-                    <p class="card-text fw-medium">Date of order: {{order.order_date|date:"d-m-Y H:i" }}</p>
-                <h6><strong>Address </strong></h6>
-                <p>{{ order.delivery_address.house_address }}, {{ order.delivery_address.city }} in {{ order.delivery_address.state }}</p>
-                <h6><strong>Order Summary </strong></h6>
-                <p class="card-text fw-medium">Payment Method: {{ order.payment_method }}</p>
-                <p class="card-text fw-medium">Status: {{ order.status }}</p>
-                <p class="card-text fw-medium">Coupon: {{order.coupon_discount}}</p>
-                <p class="card-text fw-medium">Discount amount: {{order.offer_discount}}</p>
-                <p class="card-text fw-medium">shipping: {{order.shipping}}</p>
-                <p class="card-text fw-medium">Tax: {{order.tax}}</p>
-                <p class="card-text fw-medium">Total: {{order.grand_total}}</p>
-                
-                <p class="card-text">Number of items{{order_items.count}}</p>
-                <h6><strong>Product Items </strong></h6>
-                {% for order_item in order_items %}
-                <p class="card-text fw-medium">Item: {{ order_item.product.product_name }} with{{ order_item.variant }} </p>
-                <p class="card-text fw-medium">Price: ₹{{ order_item.price }}</p>
-                {% if order_item.product_discount or order_item.category_discount %}
-                <p class="card-text fw-medium">Product Offer: {{ order_item.product_discount }} %</p>
-                <p class="card-text fw-medium">Category Offer: {{ order_item.category_discount }}%</p>
-                <p class="card-text fw-medium">Offer Price: ₹{{ order_item.offer_price }}</p>
-                {% endif %}
-                <p class="card-text fw-medium">Quantity: {{ order_item.quantity }}</p>
-                {% endfor %}
-                <a href="{% url 'download_invoice' order.id %}">Download</a>
-
+                <div class="card-body">
+                    <h6><strong>User Details</strong></h6>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Username</th>
+                            <td>{{ order.user.username }}</td>
+                        </tr>
+                        <tr>
+                            <th>Full Name</th>
+                            <td>{{ order.delivery_address.first_name }} {{ order.delivery_address.second_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Email</th>
+                            <td>{{ order.user.email }}</td>
+                        </tr>
+                        <tr>
+                            <th>Phone Number</th>
+                            <td>{{ order.delivery_address.phone_number }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date of Order</th>
+                            <td>{{ order.order_date|date:"d-m-Y H:i" }}</td>
+                        </tr>
+                    </table>
+                    <h6><strong>Address</strong></h6>
+                    <table class="table table-bordered">
+                        <tr>
+                            <td>{{ order.delivery_address.house_address }}, {{ order.delivery_address.city }}, {{ order.delivery_address.state }}</td>
+                        </tr>
+                    </table>
+                    <h6><strong>Order Summary</strong></h6>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Payment Method</th>
+                            <td>{{ order.payment_method }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td>{{ order.status }}</td>
+                        </tr>
+                        <tr>
+                            <th>Coupon</th>
+                            <td>{{ order.coupon_discount }}</td>
+                        </tr>
+                        <tr>
+                            <th>Discount Amount</th>
+                            <td>{{ order.offer_discount }}</td>
+                        </tr>
+                        <tr>
+                            <th>Shipping</th>
+                            <td>{{ order.shipping }}</td>
+                        </tr>
+                        <tr>
+                            <th>Tax</th>
+                            <td>{{ order.tax }}</td>
+                        </tr>
+                        <tr>
+                            <th>Total</th>
+                            <td>{{ order.grand_total }}</td>
+                        </tr>
+                    </table>
+                    <h6><strong>Product Items</strong></h6>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Price</th>
+                                <th>Product Offer</th>
+                                <th>Category Offer</th>
+                                <th>Offer Price</th>
+                                <th>Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order_item in order_items %}
+                                <tr>
+                                    <td>{{ order_item.product.product_name }} with {{ order_item.variant }}</td>
+                                    <td>₹{{ order_item.price }}</td>
+                                    <td>{{ order_item.product_discount }} %</td>
+                                    <td>{{ order_item.category_discount }} %</td>
+                                    <td>₹{{ order_item.offer_price }}</td>
+                                    <td>{{ order_item.quantity }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <a href="{% url 'download_invoice' order.id %}" class="btn btn-primary">Download</a>
                 </div>
-                </div>
-        </div>
+            </div>
         </div>
     </div>
 </div>
-
 {% endblock %}

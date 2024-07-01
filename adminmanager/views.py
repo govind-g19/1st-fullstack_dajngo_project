@@ -1158,7 +1158,7 @@ def export_to_pdf(context):
 
     # Order Details Table
     elements.append(Paragraph('Order Details', styles['Heading2']))
-    order_details_data = [['Order ID', 'User', 'Total', 'Status', 'Payment', 'Order Date', 'Product', 'Quantity', 'Price', 'Offer Price']]
+    order_details_data = [['Order ID', 'User', 'Total', 'Status', 'Payment', 'Order Date',  'Price', 'Offer Price']]
 
     for order in context['order_details']:
         for item in order.orderitem_set.all():
@@ -1170,8 +1170,6 @@ def export_to_pdf(context):
                 order.status,
                 order.payment_method,
                 order.order_date.strftime('%Y-%m-%d'),
-                item.product.product_name,
-                item.quantity,
                 f"{item.price}",
                 f"{item.offer_price}"
             ])

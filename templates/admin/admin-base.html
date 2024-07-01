@@ -75,9 +75,7 @@
                                     <span class="text">Offers</span>
                                 </a>
                                 <div class="submenu "style="color: #000;">
-                                    <a href="{% url 'add_category_offer' %}" class=" text-dark ">Add Category Offers</a>
                                     <a href="{% url 'category_offers_list' %}" class=" text-dark ">Category offers</a>
-                                    <a href="{% url 'add_product_offer' %}" class=" text-dark ">Add Products Offers</a>
                                     <a href="{% url 'product_offers_list' %}" class=" text-dark ">Product offers</a>
                                         {% comment %} {% url 'add_varients' %} {% endcomment %}
                                 </div>
@@ -91,17 +89,22 @@
                                 </li>
 
                             {% comment %} product {% endcomment %}
-                            <li class="menu-item has-submenu">
+                            <li class="menu-item">
+                                <a class="menu-link" href="{% url 'product_list' %}"> <i class="icon material-icons md-shopping_bag"></i>
+                                    <span class="text">Products</span>
+                                </a>
+
+                            </li>
+                            {% comment %} <li class="menu-item has-submenu">
                                 <a class="menu-link" href="{% url 'product_list' %}"> <i class="icon material-icons md-shopping_bag"></i>
                                     <span class="text">Products</span>
                                 </a>
                                 <div class="submenu "style="color: #000;">
                                     <a href="{% url 'product_list' %}" class=" text-dark "> <span class="text">Product List</span></a>
-                                    <a href="{% url 'add_product' %}" class=" text-dark ">Add Products</a>
                                     {% comment %} <a href="{% url 'add_varient' %}" class=" text-dark ">Add varients</a> {% endcomment %}
                                         {% comment %} {% url 'add_varients' %} {% endcomment %}
-                                </div>
-                            </li>
+                                {% comment %} </div>
+                            </li> {% endcomment %} 
 
                                 {% comment %} Users  {% endcomment %}
                             <li class="menu-item">
@@ -111,16 +114,15 @@
                             </li>
                                {% comment %} coupons  {% endcomment %}
               
-                            <li class="menu-item has-submenu">
+                            <li class="menu-item">
                                 <a class="menu-link" href="{% url 'view_coupon_admin' %}"> <i class="icon material-icons md-comment"></i>
-                                    <span class="text">Add coupons</span>
+                                    <span class="text">Coupons</span>
                                 </a>
                                 <div class="submenu "style="color: #000;">
                                     <a href="{% url 'view_coupon_admin' %}" class=" text-dark "> <span class="text">Coupons List</span></a>
                                     <a href="{% url 'add_coupon' %}" class=" text-dark ">Add Coupon</a>
                                 </div>
                             </li>
-
 
                                 {% comment %} Oders  {% endcomment %}
 

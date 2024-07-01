@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}My Wallet{% endblock title %}
+{% block title %}Add To Wallet{% endblock title %}
 
 {% block pageheader %}
 <h2 class="page-font">Add To Wallet</h2>
@@ -27,13 +27,13 @@
                     <div class="row mb-3">
                         <label for="name" class="col-sm-2 col-form-label">User</label>
                         <div class="col-sm-10">
-                            <input type="text" class="form-control" id="name" value="{{ user.username }}" readonly>
+                            <input type="text" class="form-control" id="name"  name="name" value="{{ user.username }}" readonly>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <label for="amount" class="col-sm-2 col-form-label">Amount</label>
                         <div class="col-sm-10">
-                            <input type="number" name="amount" class="form-control" id="amount" required>
+                            <input type="number" name="amount" class="form-control" id="amount" vlaue="{amount}" required>
                         </div>
                     </div>
                     <button type="submit" id="pay-btn" class="btn btn-primary">Credit</button>
@@ -42,20 +42,20 @@
         </div>
     </div>
 </div>
-
+<form>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-{% if razorpay_merchant_key and razorpay_amount and callback_url %}
+
 <script>
     var options = {
-        "key": "{{ razorpay_merchant_key }}",
+       " key": "{{ razorpay_merchant_key }}",
         "amount": "{{ razorpay_amount }}",
         "currency": "{{ currency }}",
+        "order_id": "{{ razorpay_order_id }}",
         "callback_url": "{{ callback_url }}",
-        "theme": {
-            "color": "#FF0000"
-        }
+       " name": "{{ user.username }}",
     };
-    // Initialise Razorpay with the options.
+
+    // Initialize Razorpay with the options.
     var rzp1 = new Razorpay(options);
 
     // Add event listener to the payment button.
@@ -64,5 +64,6 @@
         e.preventDefault();
     };
 </script>
-{% endif %}
+</form>
+
 {% endblock content %}

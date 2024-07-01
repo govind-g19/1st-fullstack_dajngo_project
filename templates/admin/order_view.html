@@ -63,7 +63,7 @@
                     {% if order.status != 'Cancelled' and order.status != 'Delivered' and order.status != 'Returned' %}
                     <a href="#" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal{{ order.id }}">Update</a>
                     {% else %}
-                    <a href="#" class="btn btn-warning btn-sm disabled" data-bs-toggle="modal" data-bs-target="#exampleModal{{ order.id }}">Update</a>
+                    <a href="#" class="btn btn-dark btn-sm disabled" data-bs-toggle="modal" data-bs-target="#exampleModal{{ order.id }}"></a>
 
                     {% endif %}
 
@@ -123,7 +123,7 @@
                     </div>
                     </div>
                     {% else %}
-                        <a class="btn btn-danger disabled" role="button" aria-disabled="true">Cancelled</a>
+                        <a class="btn btn-dark disabled btn-sm" role="button" aria-disabled="true"></a>
                     {% endif %}
                     {% comment %} {% if  order.status != "Cancelled" and order.status != 'Delivered' and order.status != 'Returned' %}
                         <a href="{% url 'admin_delete_order' order.id %}" class="btn btn-danger btn-sm">Cancel</a>
