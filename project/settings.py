@@ -93,6 +93,7 @@ SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 X_CONTENT_TYPE_OPTIONS = 'nosniff'
 
+CSRF_TRUSTED_ORIGINS = ['http://vkart.mooo.com']
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 

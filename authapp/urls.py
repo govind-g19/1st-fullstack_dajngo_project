@@ -20,10 +20,14 @@ urlpatterns = [
          name='user_view_coupons'),
     path('manage_address', views.manage_address, name='manage_address'),
 
-    # wallet
+    # wallet add_to_wallet_view
     path('my_wallet', views.my_wallet, name='my_wallet'),
     path('withdraw_funds', views.withdraw_funds, name='withdraw_funds'),
     path('add_to_wallet', views.add_to_wallet, name='add_to_wallet'),
+    path('add_to_wallet_razorpay', views.add_to_wallet_razorpay,
+         name='add_to_wallet_razorpay'),
+    path('wallet_paymenthandler/', views.wallet_paymenthandler,
+         name='wallet_paymenthandler'),
 
     # wish list
     path('add_to_wishlist/<int:product_id>/',

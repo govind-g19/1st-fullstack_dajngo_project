@@ -102,7 +102,8 @@ class Payment(models.Model):
 class Razorpay_payment(models.Model):
     razorpay_payment_id = models.CharField(max_length=30, unique=True)
     amount = models.IntegerField(blank=True, null=True)
-    order = models.ForeignKey(Orders, on_delete=models.CASCADE, null=False)
+    order = models.ForeignKey(Orders, on_delete=models.CASCADE,
+                              null=True, blank=True)
 
     def __str__(self):
         return self.razorpay_payment_id
