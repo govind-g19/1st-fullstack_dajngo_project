@@ -24,7 +24,7 @@
                 <div class="card-body">
                     <h5 class="card-title"><span class="material-symbols-outlined">wallet</span></h5>
                     <h5 class="card-title">Rs.{{ my_wallet.balance }}</h5>
-                    <a href ='{% url "add_to_wallet_razorpay" %}' type="button" class="btn btn-primary rounded-4">Credit</a>
+                    <a href ='{% url "add_to_wallet_view" %}' type="button" class="btn btn-primary rounded-4">Credit</a>
                     <button type="button" class="btn btn-primary rounded-4" onclick="showForm('debit')">Debit</button>
                 </div>
             </div>

@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.db.models import Sum
 import razorpay
-
+from razorpay.errors import SignatureVerificationError
 # active user
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -606,22 +606,40 @@ def add_to_wallet(request):
 
 
 @login_required(login_url='login')
-def add_to_wallet_razorpay(request):
-    razorpay_client = razorpay.Client(auth=(settings.KEY, settings.SECRET))
+def add_to_wallet_view(request):
     user = request.user
-    amt = 0
     currency = 'INR'
+    context = {
+        'user': user,
+        'currency': currency
+    }
+    return render(request, 'auth/add_to_wallet_form.html', context)
+
+
+@login_required(login_url='login')
+def add_to_wallet_razorpay(request):
     if request.method == "POST":
+        razorpay_client = razorpay.Client(auth=(settings.KEY, settings.SECRET))
+        user = request.user
+        currency = 'INR'
         amount = request.POST.get('amount')
-        amt = amount
 
         if not amount:
             messages.error(request, 'Enter a valid amount')
-            return redirect(' my_wallet')
-        amount = Decimal(amount)
-        if amount <= 0:
-            messages.error(request, 'Amount should be greater than 0')
-            return redirect(' my_wallet')
+            return redirect('my_wallet')
+
+        try:
+            amount = Decimal(amount)
+            print("type of amount", type(amount))
+        except ValueError:
+            messages.error(request, 'Enter a valid amount')
+            return redirect('my_wallet')
+
+        if amount <= 0 or amount > 10000:
+            messages.error(request,
+                           'Amount should be greater than 0 and less than 10000 ')
+            return redirect('my_wallet')
+
         razorpay_amount = float(amount) * 100
         razorpay_order = razorpay_client.order.create(dict(
             amount=razorpay_amount,
@@ -630,49 +648,41 @@ def add_to_wallet_razorpay(request):
         ))
 
         razorpay_order_id = razorpay_order['id']
-        callback_url = request.build_absolute_uri(
-            reverse('wallet_paymenthandler'))
-        # Creating Razorpay object in my db
+        callback_url = request.build_absolute_uri(reverse('wallet_paymenthandler'))
+        print(callback_url)
+
         if razorpay_order_id:
             Wallet_Razorpay_payment.objects.create(
                 razorpay_payment_id=razorpay_order_id,
-                amount=razorpay_amount/100,
+                amount=razorpay_amount / 100,
                 user=user
             )
         else:
-            messages.error(request, f'''{razorpay_order_id}
-                            is not valid razorpay_order_id''')
+            messages.error(request, 'Failed to create Razorpay order')
+            return redirect('my_wallet')
+
         context = {
             'razorpay_merchant_key': settings.KEY,
             'razorpay_order_id': razorpay_order_id,
             'razorpay_amount': razorpay_amount,
             'callback_url': callback_url,
             'currency': currency,
+            'amount': amount,
             'user': user
         }
         return render(request, 'auth/add_to_wallet_razorpay.html', context)
-    context = {
-        'user': user,
-        'currency': currency,
-        'amount': amt
-    }
-    return render(request, 'auth/add_to_wallet_razorpay.html', context)
+
+    return redirect('add_to_wallet_view')
 
 
 @csrf_exempt
 def wallet_paymenthandler(request):
     if request.method == "POST":
         try:
-            # Verify the payment signature
             razorpay_client = razorpay.Client(auth=(settings.KEY, settings.SECRET))
             payment_id = request.POST.get('razorpay_payment_id', '')
             razorpay_order_id = request.POST.get('razorpay_order_id', '')
             signature = request.POST.get('razorpay_signature', '')
-
-            # Debugging
-            print('Received payment_id:', payment_id)
-            print('Received razorpay_order_id:', razorpay_order_id)
-            print('Received signature:', signature)
 
             params_dict = {
                 'razorpay_order_id': razorpay_order_id,
@@ -680,15 +690,14 @@ def wallet_paymenthandler(request):
                 'razorpay_signature': signature
             }
 
-            # Verify the payment signature
             razorpay_client.utility.verify_payment_signature(params_dict)
 
-            # Signature verification successful
             try:
                 razorpay_payment = Wallet_Razorpay_payment.objects.get(razorpay_payment_id=razorpay_order_id)
-            except Razorpay_payment.DoesNotExist:
+            except Wallet_Razorpay_payment.DoesNotExist:
                 messages.error(request, f"Razorpay payment with ID {payment_id} does not exist.")
                 return redirect('my_wallet')
+
             amount = razorpay_payment.amount
             user = razorpay_payment.user
             if user.is_authenticated:
@@ -696,11 +705,7 @@ def wallet_paymenthandler(request):
                 wallet.balance += Decimal(amount)
                 wallet.save()
 
-                # Creating a transaction
-                Transaction.objects.create(wallet=wallet,
-                                        transaction_type='credit',
-                                        amount=Decimal(amount))
-
+                Transaction.objects.create(wallet=wallet, transaction_type='credit', amount=Decimal(amount))
                 messages.success(request, 'Amount added successfully')
                 return redirect('my_wallet')
 
