@@ -364,7 +364,10 @@ def loogout(request):
 # user profile
 def view_profile(request):
     current_user = request.user
-    referral = Referral.objects.get(user=current_user)
+    try:
+        referral = Referral.objects.get(user=current_user)
+    except Referral.DoesNotExist:
+        referral = None
     addresses = Address.objects.filter(user=current_user,
                                        is_primary=True).first()
     address_list = Address.objects.filter(user=current_user)

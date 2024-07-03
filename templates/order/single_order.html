@@ -24,7 +24,6 @@
 
                         {% if order.status == 'Cancelled' or order.status == 'Returned' %}
                                     <!-- Button trigger modal -->
-                                        <button type="button" class="btn btn-danger btn-sm disabled"><span class="">{{order.status}}<span></button>
                                     {% elif order.status == 'Delivered' %}
                                     <button type="button " class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#exampleModal{{ order.id }}">
                                         Return

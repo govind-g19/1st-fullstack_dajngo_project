@@ -34,7 +34,9 @@
             <hr class="mt-1 mb-3 p-0">
             <p class="card-text fw-medium">Full Nmae :{{ addresses.first_name |upper }} {{ addresses.second_name|upper }} </p>
             <p class="card-text fw-medium">User Name :  {{ current_user.username }}</p>
+            {% if referral %}
             <p class="card-text fw-medium">Referral :  {{ referral.referral_code }}</p>
+            {% endif %}
             <p class="card-text fw-medium">Phone :      {{ addresses.phone_number }}</p>
             <p class="card-text fw-medium">Email ID :   {{ current_user.email }}</p>
             <p class="card-text fw-medium"> <a href="{% url 'change_password' %}">Change password </a></p>
