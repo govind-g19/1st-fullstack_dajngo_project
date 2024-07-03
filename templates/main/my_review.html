@@ -21,7 +21,7 @@
             <div class="col-12">
                 {% for review in user_rview %}
                     {% if review.status %}
-                        <a href="{% url 'product_details' product_id=review.variant.product.first.id %}" class="card-link" style="text-decoration: none;">
+                        <a href="{% url 'product_details' product_id=review.variant.product.id %}" class="card-link" style="text-decoration: none;">
                             <div class="card mb-3 {% if review.rating == 1 or review.rating == 2 %} border-danger {% else %} border-success {% endif %}">
                                 <div class="card-header">
                                     {{ review.variant.product.first.product_name }} with {{ review.variant.ram }} RAM & {{ review.variant.internal_memory }} ROM:  

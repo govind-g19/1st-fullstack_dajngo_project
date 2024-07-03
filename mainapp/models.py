@@ -16,4 +16,4 @@ class Wallet_Razorpay_payment(models.Model):
                              blank=True, null=True)
 
     def __str__(self):
-        return self.razorpay_payment_id
+        return f'''the user {self.user.username} '''

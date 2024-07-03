@@ -1,9 +1,10 @@
+
 {% extends "base.html" %}
 
-{% block title %}Add To Wallet{% endblock title %}
+{% block title %}Confrom the payment {% endblock title %}
 
 {% block pageheader %}
-<h2 class="page-font">Add To Wallet</h2>
+<h2 class="page-font">Confrom the payment</h2>
 {% endblock pageheader %}
 
 {% block content %}
@@ -22,37 +23,29 @@
         <div class="card col-6">
             <div class="card-body text-secondary">
                 <h6 class="card-title">Credit via Razorpay</h6><br>
-                <form id="payment-form" method="POST" action="{% url 'add_to_wallet_razorpay' %}">
-                    {% csrf_token %}
-                    <div class="row mb-3">
-                        <label for="name" class="col-sm-2 col-form-label">User</label>
-                        <div class="col-sm-10">
-                            <input type="text" class="form-control" id="name"  name="name" value="{{ user.username }}" readonly>
-                        </div>
-                    </div>
+                <form method="POST action= {% url 'add_to_wallet_razorpay' %}">
                     <div class="row mb-3">
                         <label for="amount" class="col-sm-2 col-form-label">Amount</label>
                         <div class="col-sm-10">
-                            <input type="number" name="amount" class="form-control" id="amount" vlaue="{amount}" required>
+                            <input type="number" name="amount" class="form-control" id="amount" value="{{ amount }}" readonly>
                         </div>
                     </div>
-                    <button type="submit" id="pay-btn" class="btn btn-primary">Credit</button>
+                   
+                    <button type="button" id="pay-btn" class="btn btn-primary">Pay Now</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
-<form>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-
 <script>
     var options = {
-       " key": "{{ razorpay_merchant_key }}",
+        "key": "{{ razorpay_merchant_key }}",
         "amount": "{{ razorpay_amount }}",
         "currency": "{{ currency }}",
         "order_id": "{{ razorpay_order_id }}",
         "callback_url": "{{ callback_url }}",
-       " name": "{{ user.username }}",
+        "name": "{{ user.username }}"
     };
 
     // Initialize Razorpay with the options.
@@ -64,6 +57,4 @@
         e.preventDefault();
     };
 </script>
-</form>
-
 {% endblock content %}
